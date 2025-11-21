@@ -1,0 +1,94 @@
+# ==================================================
+# AWS Configuration
+# ==================================================
+aws_region = "us-west-2"
+
+# ==================================================
+# EKS Cluster Configuration
+# ==================================================
+cluster_name    = "my-eks-cluster"
+cluster_version = "1.31"  # Latest Kubernetes version (Nov 2025)
+
+# Cluster endpoint access
+cluster_endpoint_private_access      = true
+cluster_endpoint_public_access       = true
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]  # Restrict this in production
+
+# Control plane logging
+cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+# ==================================================
+# VPC Configuration
+# ==================================================
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+# Public subnets (for load balancers)
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+public_subnet_count  = 3
+
+# Private subnets (for EKS nodes)
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+private_subnet_count = 3
+
+# NAT Gateway configuration
+enable_nat_gateway   = true
+nat_gateway_count    = 1  # Use 3 for high availability (one per AZ)
+
+# ==================================================
+# EKS Node Group Configuration
+# ==================================================
+node_group_name      = "general-nodes"
+node_instance_types  = ["t3.medium"]  # ["t3.medium", "t3.large"] for mixed instances
+node_disk_size       = 20
+
+# Scaling configuration
+node_desired_size    = 2
+node_max_size        = 4
+node_min_size        = 1
+node_max_unavailable = 1
+
+# EC2 Options
+node_capacity_type   = "ON_DEMAND"  # ON_DEMAND or SPOT (SPOT is ~70% cheaper)
+node_ami_type        = "AL2023_x86_64_STANDARD"  # AL2023_x86_64_STANDARD, AL2_x86_64, AL2_ARM_64, etc.
+
+# Custom labels for nodes (optional)
+node_labels = {
+  environment = "dev"
+  team        = "platform"
+}
+
+# Taints for nodes (optional) - để giới hạn pods nào có thể schedule
+# node_taints = [
+#   {
+#     key    = "dedicated"
+#     value  = "gpu"
+#     effect = "NoSchedule"
+#   }
+# ]
+
+# SSH Access (optional - not recommended for production)
+enable_node_group_remote_access = false
+# node_ssh_key_name               = "my-key-pair"
+# node_ssh_allowed_cidr           = ["10.0.0.0/16"]
+
+# ==================================================
+# EKS Addons (Latest versions as of Nov 2025)
+# ==================================================
+enable_cluster_addons     = true
+addon_vpc_cni_version     = "v1.18.5-eksbuild.1"
+addon_coredns_version     = "v1.11.3-eksbuild.1"
+addon_kube_proxy_version  = "v1.31.0-eksbuild.5"
+
+# AWS Load Balancer Controller (for ALB/NLB)
+enable_aws_load_balancer_controller = true
+
+# ==================================================
+# Tags
+# ==================================================
+tags = {
+  Environment = "dev"
+  Project     = "eks-demo"
+  ManagedBy   = "terraform"
+  Owner       = "devops-team"
+}
