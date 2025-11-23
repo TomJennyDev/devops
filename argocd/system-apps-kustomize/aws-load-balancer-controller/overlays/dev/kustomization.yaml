@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - ../../base
+
+# Patches for dev environment
+patches:
+  - target:
+      kind: Application
+      name: aws-load-balancer-controller
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: aws-load-balancer-controller-dev
+      - op: add
+        path: /metadata/labels
+        value:
+          environment: dev
+      - op: replace
+        path: /spec/source/helm/values
+        value: |
+          clusterName: my-eks-dev
+          
+          serviceAccount:
+            create: true
+            annotations:
+              eks.amazonaws.com/role-arn: arn:aws:iam::372836560690:role/my-eks-dev-aws-load-balancer-controller
+          
+          region: ap-southeast-1
+          vpcId: vpc-0e6ca42c7851c46c4
+          
+          # Dev: Low resources for cost optimization
+          resources:
+            limits:
+              cpu: 100m
+              memory: 300Mi
+            requests:
+              cpu: 50m
+              memory: 150Mi
+          
+          # Dev: Single replica
+          replicaCount: 1
+          
+          # Dev: Debug logging
+          logLevel: debug

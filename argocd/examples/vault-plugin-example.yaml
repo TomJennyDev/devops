@@ -1,0 +1,37 @@
+# ==============================================================================
+# ArgoCD Vault Plugin - Lấy secrets từ HashiCorp Vault
+# ==============================================================================
+#
+# Cài đặt argocd-vault-plugin:
+# https://argocd-vault-plugin.readthedocs.io/
+#
+# ==============================================================================
+
+---
+# Values file với placeholders
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+spec:
+  source:
+    repoURL: https://aws.github.io/eks-charts
+    chart: aws-load-balancer-controller
+    targetRevision: 1.8.2
+    helm:
+      values: |
+        clusterName: <path:secret/data/eks/dev#clusterName>
+        vpcId: <path:secret/data/eks/dev#vpcId>
+        
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: <path:secret/data/eks/dev#roleArn>
+        
+        region: <path:secret/data/eks/dev#region>
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+
+# ArgoCD sẽ tự động thay thế <path:...> bằng giá trị từ Vault

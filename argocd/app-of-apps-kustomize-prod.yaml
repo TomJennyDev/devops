@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: system-apps-prod-kustomize
+  namespace: argocd
+  labels:
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    # AWS Load Balancer Controller
+    - repoURL: https://github.com/TomJennyDev/devops.git
+      targetRevision: main
+      path: argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/prod
+    
+    # Metrics Server
+    - repoURL: https://github.com/TomJennyDev/devops.git
+      targetRevision: main
+      path: argocd/system-apps-kustomize/metrics-server/overlays/prod
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  
+  syncPolicy:
+    # Manual sync for production
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
