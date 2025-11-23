@@ -4,13 +4,13 @@
 resource "aws_security_group" "eks_cluster" {
   name_prefix = "${var.cluster_name}-cluster-sg-"
   description = "Security group for EKS cluster control plane"
-  vpc_id      = aws_vpc.eks_vpc.id
+  vpc_id      = var.vpc_id
 
   tags = merge(
     {
       Name = "${var.cluster_name}-cluster-sg"
     },
-    var.tags
+    var.common_tags
   )
 
   lifecycle {
@@ -46,14 +46,14 @@ resource "aws_security_group_rule" "cluster_egress_internet" {
 resource "aws_security_group" "eks_nodes" {
   name_prefix = "${var.cluster_name}-node-sg-"
   description = "Security group for all nodes in the cluster"
-  vpc_id      = aws_vpc.eks_vpc.id
+  vpc_id      = var.vpc_id
 
   tags = merge(
     {
       Name                                        = "${var.cluster_name}-node-sg"
       "kubernetes.io/cluster/${var.cluster_name}" = "owned"
     },
-    var.tags
+    var.common_tags
   )
 
   lifecycle {
@@ -107,12 +107,12 @@ resource "aws_security_group_rule" "nodes_egress_internet" {
 
 # Optional SSH access to nodes
 resource "aws_security_group_rule" "nodes_ssh" {
-  count             = var.enable_node_group_remote_access && length(var.node_ssh_allowed_cidr) > 0 ? 1 : 0
+  count             = var.enable_node_ssh_access && length(var.ssh_allowed_cidr_blocks) > 0 ? 1 : 0
   description       = "Allow SSH access to nodes"
   type              = "ingress"
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
   security_group_id = aws_security_group.eks_nodes.id
-  cidr_blocks       = var.node_ssh_allowed_cidr
+  cidr_blocks       = var.ssh_allowed_cidr_blocks
 }

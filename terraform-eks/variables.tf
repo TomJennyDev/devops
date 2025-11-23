@@ -15,7 +15,7 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
-  default     = "1.31"
+  default     = "1.34"
 }
 
 # VPC Configuration
@@ -74,90 +74,16 @@ variable "node_group_name" {
   default     = "general-nodes"
 }
 
-variable "node_instance_types" {
-  description = "Instance types for EKS node group"
-  type        = list(string)
-  default     = ["t3.medium"]
-}
-
-variable "node_disk_size" {
-  description = "Disk size in GB for worker nodes"
-  type        = number
-  default     = 20
-}
-
-variable "node_desired_size" {
-  description = "Desired number of worker nodes"
-  type        = number
-  default     = 2
-}
-
-variable "node_max_size" {
-  description = "Maximum number of worker nodes"
-  type        = number
-  default     = 4
-}
-
-variable "node_min_size" {
-  description = "Minimum number of worker nodes"
-  type        = number
-  default     = 1
-}
-
 variable "node_max_unavailable" {
   description = "Maximum number of nodes unavailable during update"
   type        = number
   default     = 1
 }
 
-variable "node_capacity_type" {
-  description = "Type of capacity: ON_DEMAND or SPOT"
-  type        = string
-  default     = "ON_DEMAND"
-  validation {
-    condition     = contains(["ON_DEMAND", "SPOT"], var.node_capacity_type)
-    error_message = "Capacity type must be ON_DEMAND or SPOT."
-  }
-}
-
-variable "node_ami_type" {
-  description = "AMI type for nodes: AL2023_x86_64_STANDARD, AL2_x86_64, AL2_x86_64_GPU, AL2_ARM_64, BOTTLEROCKET_x86_64, BOTTLEROCKET_ARM_64"
-  type        = string
-  default     = "AL2023_x86_64_STANDARD"
-}
-
-variable "node_labels" {
-  description = "Key-value map of Kubernetes labels for nodes"
-  type        = map(string)
-  default     = {}
-}
-
-variable "node_taints" {
-  description = "List of taints to apply to nodes"
-  type = list(object({
-    key    = string
-    value  = string
-    effect = string
-  }))
-  default = []
-}
-
-variable "enable_node_group_remote_access" {
-  description = "Enable remote SSH access to nodes"
-  type        = bool
-  default     = false
-}
-
 variable "node_ssh_key_name" {
   description = "EC2 Key Pair name for SSH access to nodes"
   type        = string
   default     = ""
-}
-
-variable "node_ssh_allowed_cidr" {
-  description = "CIDR blocks allowed to SSH to nodes"
-  type        = list(string)
-  default     = []
 }
 
 # Cluster Addons
@@ -173,22 +99,17 @@ variable "enable_aws_load_balancer_controller" {
   default     = true
 }
 
-variable "addon_vpc_cni_version" {
-  description = "Version of VPC CNI addon"
-  type        = string
-  default     = "v1.18.5-eksbuild.1"
+# External DNS
+variable "enable_external_dns" {
+  description = "Enable External DNS for automatic Route53 DNS management"
+  type        = bool
+  default     = false
 }
 
-variable "addon_coredns_version" {
-  description = "Version of CoreDNS addon"
-  type        = string
-  default     = "v1.11.3-eksbuild.1"
-}
-
-variable "addon_kube_proxy_version" {
-  description = "Version of kube-proxy addon"
-  type        = string
-  default     = "v1.31.0-eksbuild.5"
+variable "route53_zone_arns" {
+  description = "List of Route53 Hosted Zone ARNs that External DNS can manage (empty = all zones)"
+  type        = list(string)
+  default     = []
 }
 
 # Cluster Endpoint Access
@@ -217,8 +138,105 @@ variable "cluster_enabled_log_types" {
   default     = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 }
 
+# Logging
+variable "cluster_log_retention_days" {
+  description = "Number of days to retain cluster logs in CloudWatch"
+  type        = number
+  default     = 7
+}
+
+# Node Group Configuration
+variable "node_group_desired_size" {
+  description = "Desired number of worker nodes"
+  type        = number
+  default     = 2
+}
+
+variable "node_group_min_size" {
+  description = "Minimum number of worker nodes"
+  type        = number
+  default     = 1
+}
+
+variable "node_group_max_size" {
+  description = "Maximum number of worker nodes"
+  type        = number
+  default     = 4
+}
+
+variable "node_group_instance_types" {
+  description = "List of instance types for the node group"
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "node_group_capacity_type" {
+  description = "Capacity type for node group (ON_DEMAND or SPOT)"
+  type        = string
+  default     = "ON_DEMAND"
+}
+
+variable "node_group_disk_size" {
+  description = "Disk size in GB for worker nodes"
+  type        = number
+  default     = 50
+}
+
+variable "node_group_ami_type" {
+  description = "AMI type for node group"
+  type        = string
+  default     = "AL2023_x86_64_STANDARD"
+}
+
+variable "node_group_labels" {
+  description = "Labels to apply to node group"
+  type        = map(string)
+  default     = {}
+}
+
+variable "node_group_taints" {
+  description = "Taints to apply to node group"
+  type        = list(object({
+    key    = string
+    value  = string
+    effect = string
+  }))
+  default     = []
+}
+
+variable "enable_node_ssh_access" {
+  description = "Enable SSH access to worker nodes"
+  type        = bool
+  default     = false
+}
+
+variable "ssh_allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to SSH to nodes"
+  type        = list(string)
+  default     = []
+}
+
+# EKS Addon Versions
+variable "vpc_cni_version" {
+  description = "Version of VPC CNI addon"
+  type        = string
+  default     = "v1.18.5-eksbuild.1"
+}
+
+variable "coredns_version" {
+  description = "Version of CoreDNS addon"
+  type        = string
+  default     = "v1.11.3-eksbuild.1"
+}
+
+variable "kube_proxy_version" {
+  description = "Version of kube-proxy addon"
+  type        = string
+  default     = "v1.31.0-eksbuild.2"
+}
+
 # Tags
-variable "tags" {
+variable "common_tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {

@@ -2,51 +2,51 @@
 # EKS Node Group (EC2 Workers)
 # ============================================
 resource "aws_eks_node_group" "main" {
-  cluster_name    = aws_eks_cluster.main.name
+  cluster_name    = var.cluster_name
   node_group_name = var.node_group_name
-  node_role_arn   = aws_iam_role.eks_node.arn
-  subnet_ids      = aws_subnet.eks_subnet_private[*].id
+  node_role_arn   = var.node_role_arn
+  subnet_ids      = var.subnet_ids
   version         = var.cluster_version
 
   # ============================================
   # Scaling Configuration
   # ============================================
   scaling_config {
-    desired_size = var.node_desired_size
-    max_size     = var.node_max_size
-    min_size     = var.node_min_size
+    desired_size = var.node_group_desired_size
+    max_size     = var.node_group_max_size
+    min_size     = var.node_group_min_size
   }
 
   # ============================================
   # Update Configuration
   # ============================================
   update_config {
-    max_unavailable = var.node_max_unavailable
+    max_unavailable = var.node_group_max_unavailable
   }
 
   # ============================================
   # EC2 Instance Configuration
   # ============================================
-  ami_type       = var.node_ami_type
-  capacity_type  = var.node_capacity_type
-  disk_size      = var.node_disk_size
-  instance_types = var.node_instance_types
+  ami_type       = var.node_group_ami_type
+  capacity_type  = var.node_group_capacity_type
+  disk_size      = var.node_group_disk_size
+  instance_types = var.node_group_instance_types
 
   # ============================================
   # Node Labels (for workload routing)
   # ============================================
   labels = merge(
     {
-      role = "general"
+      "node-group" = var.node_group_name
     },
-    var.node_labels
+    var.node_group_labels
   )
 
   # ============================================
   # Node Taints (for dedicated workloads)
   # ============================================
   dynamic "taint" {
-    for_each = var.node_taints
+    for_each = var.node_group_taints
     content {
       key    = taint.value.key
       value  = taint.value.value
@@ -58,10 +58,9 @@ resource "aws_eks_node_group" "main" {
   # SSH Remote Access (optional)
   # ============================================
   dynamic "remote_access" {
-    for_each = var.enable_node_group_remote_access ? [1] : []
+    for_each = var.enable_node_ssh_access ? [1] : []
     content {
       ec2_ssh_key               = var.node_ssh_key_name
-      source_security_group_ids = var.node_ssh_allowed_cidr != [] ? [aws_security_group.eks_nodes.id] : null
     }
   }
 
@@ -72,17 +71,8 @@ resource "aws_eks_node_group" "main" {
     {
       Name = "${var.cluster_name}-${var.node_group_name}"
     },
-    var.tags
+    var.common_tags
   )
-
-  # ============================================
-  # Dependencies
-  # ============================================
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_node_policy,
-    aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_ecr_policy
-  ]
 
   # ============================================
   # Lifecycle Rules
@@ -131,7 +121,7 @@ resource "aws_eks_node_group" "spot" {
     {
       Name = "${var.cluster_name}-spot-nodes"
     },
-    var.tags
+    var.common_tags
   )
 
   depends_on = [
@@ -189,7 +179,7 @@ resource "aws_eks_node_group" "gpu" {
     {
       Name = "${var.cluster_name}-gpu-nodes"
     },
-    var.tags
+    var.common_tags
   )
 
   depends_on = [
@@ -239,7 +229,7 @@ resource "aws_eks_node_group" "arm" {
     {
       Name = "${var.cluster_name}-arm-nodes"
     },
-    var.tags
+    var.common_tags
   )
 
   depends_on = [

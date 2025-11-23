@@ -38,28 +38,29 @@ nat_gateway_count    = 1  # Use 3 for high availability (one per AZ)
 # ==================================================
 # EKS Node Group Configuration
 # ==================================================
-node_group_name      = "general-nodes"
-node_instance_types  = ["t3.medium"]  # ["t3.medium", "t3.large"] for mixed instances
-node_disk_size       = 20
+node_group_name           = "general-nodes"
+node_group_instance_types = ["t3.medium"]  # ["t3.medium", "t3.large"] for mixed instances
+node_group_disk_size      = 20
 
 # Scaling configuration
-node_desired_size    = 2
-node_max_size        = 4
-node_min_size        = 1
-node_max_unavailable = 1
+node_group_desired_size  = 2
+node_group_max_size      = 4
+node_group_min_size      = 1
+node_max_unavailable     = 1
 
 # EC2 Options
-node_capacity_type   = "ON_DEMAND"  # ON_DEMAND or SPOT (SPOT is ~70% cheaper)
-node_ami_type        = "AL2023_x86_64_STANDARD"  # AL2023_x86_64_STANDARD, AL2_x86_64, AL2_ARM_64, etc.
+node_group_capacity_type = "ON_DEMAND"  # ON_DEMAND or SPOT (SPOT is ~70% cheaper)
+node_group_ami_type      = "AL2023_x86_64_STANDARD"  # AL2023_x86_64_STANDARD, AL2_x86_64, AL2_ARM_64, etc.
 
 # Custom labels for nodes (optional)
-node_labels = {
+node_group_labels = {
   environment = "dev"
   team        = "platform"
 }
 
 # Taints for nodes (optional) - để giới hạn pods nào có thể schedule
-# node_taints = [
+node_group_taints = []
+# node_group_taints = [
 #   {
 #     key    = "dedicated"
 #     value  = "gpu"
@@ -68,25 +69,38 @@ node_labels = {
 # ]
 
 # SSH Access (optional - not recommended for production)
-enable_node_group_remote_access = false
-# node_ssh_key_name               = "my-key-pair"
-# node_ssh_allowed_cidr           = ["10.0.0.0/16"]
+enable_node_ssh_access  = false
+node_ssh_key_name       = ""  # Set to your EC2 key pair name if SSH access is enabled
+ssh_allowed_cidr_blocks = []  # e.g., ["10.0.0.0/16"] to allow VPC access
 
 # ==================================================
 # EKS Addons (Latest versions as of Nov 2025)
 # ==================================================
-enable_cluster_addons     = true
-addon_vpc_cni_version     = "v1.18.5-eksbuild.1"
-addon_coredns_version     = "v1.11.3-eksbuild.1"
-addon_kube_proxy_version  = "v1.31.0-eksbuild.5"
+enable_cluster_addons = true
+vpc_cni_version       = "v1.18.5-eksbuild.1"
+coredns_version       = "v1.11.3-eksbuild.1"
+kube_proxy_version    = "v1.31.0-eksbuild.2"
 
 # AWS Load Balancer Controller (for ALB/NLB)
 enable_aws_load_balancer_controller = true
 
+# External DNS (for automatic Route53 DNS management)
+enable_external_dns = false  # Set to true to enable
+# route53_zone_arns = [
+#   "arn:aws:route53:::hostedzone/Z1234567890ABC",  # Your hosted zone ARN
+#   "arn:aws:route53:::hostedzone/Z0987654321XYZ"   # Add more zones if needed
+# ]
+# Leave empty [] to allow all zones (not recommended for production)
+
+# ==================================================
+# Logging
+# ==================================================
+cluster_log_retention_days = 7
+
 # ==================================================
 # Tags
 # ==================================================
-tags = {
+common_tags = {
   Environment = "dev"
   Project     = "eks-demo"
   ManagedBy   = "terraform"

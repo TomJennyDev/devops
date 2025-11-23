@@ -4,14 +4,14 @@
 resource "aws_eks_cluster" "main" {
   name     = var.cluster_name
   version  = var.cluster_version
-  role_arn = aws_iam_role.eks_cluster.arn
+  role_arn = var.cluster_role_arn
 
   vpc_config {
-    subnet_ids              = concat(aws_subnet.eks_subnet_private[*].id, aws_subnet.eks_subnet_public[*].id)
+    subnet_ids              = var.subnet_ids
     endpoint_private_access = var.cluster_endpoint_private_access
     endpoint_public_access  = var.cluster_endpoint_public_access
     public_access_cidrs     = var.cluster_endpoint_public_access_cidrs
-    security_group_ids      = [aws_security_group.eks_cluster.id]
+    security_group_ids      = [var.cluster_security_group_id]
   }
 
   enabled_cluster_log_types = var.cluster_enabled_log_types
@@ -20,11 +20,10 @@ resource "aws_eks_cluster" "main" {
     {
       Name = var.cluster_name
     },
-    var.tags
+    var.common_tags
   )
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_cluster_policy,
     aws_cloudwatch_log_group.eks_cluster
   ]
 }
@@ -34,9 +33,9 @@ resource "aws_eks_cluster" "main" {
 # ============================================
 resource "aws_cloudwatch_log_group" "eks_cluster" {
   name              = "/aws/eks/${var.cluster_name}/cluster"
-  retention_in_days = 7
+  retention_in_days = var.cluster_log_retention_days
 
-  tags = var.tags
+  tags = var.common_tags
 }
 
 # ============================================
@@ -47,10 +46,10 @@ resource "aws_eks_addon" "vpc_cni" {
 
   cluster_name             = aws_eks_cluster.main.name
   addon_name               = "vpc-cni"
-  addon_version            = var.addon_vpc_cni_version
+  addon_version            = var.vpc_cni_version
   resolve_conflicts_on_update = "PRESERVE"
 
-  tags = var.tags
+  tags = var.common_tags
 }
 
 resource "aws_eks_addon" "coredns" {
@@ -58,12 +57,10 @@ resource "aws_eks_addon" "coredns" {
 
   cluster_name             = aws_eks_cluster.main.name
   addon_name               = "coredns"
-  addon_version            = var.addon_coredns_version
+  addon_version            = var.coredns_version
   resolve_conflicts_on_update = "PRESERVE"
 
-  tags = var.tags
-
-  depends_on = [aws_eks_node_group.main]
+  tags = var.common_tags
 }
 
 resource "aws_eks_addon" "kube_proxy" {
@@ -71,10 +68,10 @@ resource "aws_eks_addon" "kube_proxy" {
 
   cluster_name             = aws_eks_cluster.main.name
   addon_name               = "kube-proxy"
-  addon_version            = var.addon_kube_proxy_version
+  addon_version            = var.kube_proxy_version
   resolve_conflicts_on_update = "PRESERVE"
 
-  tags = var.tags
+  tags = var.common_tags
 }
 
 # ============================================
@@ -89,5 +86,5 @@ resource "aws_iam_openid_connect_provider" "eks" {
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 
-  tags = var.tags
+  tags = var.common_tags
 }

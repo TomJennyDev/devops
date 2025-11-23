@@ -3,48 +3,48 @@
 # ============================================
 output "cluster_id" {
   description = "The name/id of the EKS cluster"
-  value       = aws_eks_cluster.main.id
+  value       = module.eks.cluster_id
 }
 
 output "cluster_name" {
   description = "The name of the EKS cluster"
-  value       = aws_eks_cluster.main.name
+  value       = var.cluster_name
 }
 
 output "cluster_arn" {
   description = "The Amazon Resource Name (ARN) of the cluster"
-  value       = aws_eks_cluster.main.arn
+  value       = module.eks.cluster_arn
 }
 
 output "cluster_endpoint" {
   description = "Endpoint for EKS control plane"
-  value       = aws_eks_cluster.main.endpoint
+  value       = module.eks.cluster_endpoint
 }
 
 output "cluster_version" {
   description = "The Kubernetes server version for the cluster"
-  value       = aws_eks_cluster.main.version
+  value       = module.eks.cluster_version
 }
 
 output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
-  value       = aws_eks_cluster.main.certificate_authority[0].data
+  value       = module.eks.cluster_certificate_authority_data
   sensitive   = true
 }
 
 output "cluster_security_group_id" {
   description = "Security group ID attached to the EKS cluster"
-  value       = aws_security_group.eks_cluster.id
+  value       = module.security_groups.cluster_security_group_id
 }
 
 output "cluster_oidc_issuer_url" {
   description = "The URL on the EKS cluster OIDC Issuer"
-  value       = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  value       = module.eks.cluster_oidc_issuer_url
 }
 
 output "oidc_provider_arn" {
   description = "ARN of the OIDC Provider for EKS"
-  value       = aws_iam_openid_connect_provider.eks.arn
+  value       = module.eks.oidc_provider_arn
 }
 
 # ============================================
@@ -52,22 +52,22 @@ output "oidc_provider_arn" {
 # ============================================
 output "vpc_id" {
   description = "The ID of the VPC"
-  value       = aws_vpc.eks_vpc.id
+  value       = module.vpc.vpc_id
 }
 
 output "vpc_cidr" {
   description = "The CIDR block of the VPC"
-  value       = aws_vpc.eks_vpc.cidr_block
+  value       = module.vpc.vpc_cidr
 }
 
 output "public_subnet_ids" {
   description = "List of IDs of public subnets"
-  value       = aws_subnet.eks_subnet_public[*].id
+  value       = module.vpc.public_subnet_ids
 }
 
 output "private_subnet_ids" {
   description = "List of IDs of private subnets"
-  value       = aws_subnet.eks_subnet_private[*].id
+  value       = module.vpc.private_subnet_ids
 }
 
 # ============================================
@@ -75,27 +75,53 @@ output "private_subnet_ids" {
 # ============================================
 output "node_group_id" {
   description = "EKS node group ID"
-  value       = aws_eks_node_group.main.id
+  value       = module.node_groups.node_group_id
 }
 
 output "node_group_arn" {
   description = "Amazon Resource Name (ARN) of the EKS Node Group"
-  value       = aws_eks_node_group.main.arn
+  value       = module.node_groups.node_group_arn
 }
 
 output "node_group_status" {
   description = "Status of the EKS node group"
-  value       = aws_eks_node_group.main.status
+  value       = module.node_groups.node_group_status
 }
 
 output "node_security_group_id" {
   description = "Security group ID attached to the EKS nodes"
-  value       = aws_security_group.eks_nodes.id
+  value       = module.security_groups.node_security_group_id
 }
 
 output "node_role_arn" {
   description = "IAM role ARN for EKS nodes"
-  value       = aws_iam_role.eks_node.arn
+  value       = module.iam.node_role_arn
+}
+
+# ============================================
+# External DNS Outputs
+# ============================================
+output "external_dns_role_arn" {
+  description = "IAM role ARN for External DNS (use in ArgoCD config)"
+  value       = module.external_dns.external_dns_role_arn
+}
+
+output "external_dns_role_name" {
+  description = "IAM role name for External DNS"
+  value       = module.external_dns.external_dns_role_name
+}
+
+# ============================================
+# AWS Load Balancer Controller Outputs
+# ============================================
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM role ARN for AWS Load Balancer Controller (use in Helm/ArgoCD)"
+  value       = module.alb_controller.aws_load_balancer_controller_role_arn
+}
+
+output "aws_load_balancer_controller_policy_arn" {
+  description = "IAM policy ARN for AWS Load Balancer Controller"
+  value       = module.alb_controller.aws_load_balancer_controller_policy_arn
 }
 
 # ============================================
@@ -103,5 +129,5 @@ output "node_role_arn" {
 # ============================================
 output "configure_kubectl" {
   description = "Command to configure kubectl"
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.main.name}"
+  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${var.cluster_name}"
 }

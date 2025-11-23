@@ -15,7 +15,7 @@ resource "aws_iam_role" "eks_cluster" {
     }]
   })
 
-  tags = var.tags
+  tags = var.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
@@ -46,7 +46,7 @@ resource "aws_iam_role" "eks_node" {
     }]
   })
 
-  tags = var.tags
+  tags = var.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy" {
@@ -79,5 +79,5 @@ resource "aws_iam_instance_profile" "eks_node" {
   name = "${var.cluster_name}-eks-node-instance-profile"
   role = aws_iam_role.eks_node.name
 
-  tags = var.tags
+  tags = var.common_tags
 }
