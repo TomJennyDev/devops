@@ -1,0 +1,303 @@
+# ========================================
+# PROMETHEUS STACK - PRODUCTION ENVIRONMENT
+# ========================================
+# Official Chart: kube-prometheus-stack v65.2.0
+# Source: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+# Full values reference: See default-values-reference.yaml (5413 lines)
+# Documentation: https://prometheus.io/docs/
+
+# ========================================
+# PROMETHEUS SERVER
+# ========================================
+prometheus:
+  prometheusSpec:
+    # Retention & Storage
+    retention: 30d  # Prod: 30 days retention
+    retentionSize: "50GB"
+    
+    # Resources - Prod: High resources
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 100Gi  # Prod: 100GB storage
+          storageClassName: gp3
+    
+    # Scrape interval
+    scrapeInterval: 15s  # Prod: 15s (more frequent)
+    evaluationInterval: 15s
+    
+    # Service Monitor selectors
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    
+    # Replicas - HA
+    replicas: 3  # Prod: 3 replicas for HA
+    
+    # Pod anti-affinity
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - prometheus
+            topologyKey: kubernetes.io/hostname
+    
+    # Pod disruption budget
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 1
+
+# ========================================
+# GRAFANA
+# ========================================
+grafana:
+  enabled: true
+  
+  # Admin credentials - Use Sealed Secrets!
+  adminPassword: "REPLACE_WITH_SEALED_SECRET"
+  
+  # Resources - Prod: High resources
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  # Persistence
+  persistence:
+    enabled: true
+    size: 20Gi  # Prod: 20GB
+    storageClassName: gp3
+  
+  # Service type
+  service:
+    type: ClusterIP
+    port: 80
+  
+  # Ingress with ALB
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:REGION:ACCOUNT:certificate/CERT_ID"
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: '443'
+    hosts:
+      - grafana.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.example.com
+  
+  # Default dashboards
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: Asia/Singapore
+  
+  # Replicas - HA
+  replicas: 3  # Prod: 3 replicas for HA
+  
+  # Pod anti-affinity
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - grafana
+          topologyKey: kubernetes.io/hostname
+  
+  # Grafana config
+  grafana.ini:
+    server:
+      root_url: "https://grafana.example.com"
+    analytics:
+      check_for_updates: false
+    security:
+      allow_embedding: false
+      cookie_secure: true
+      strict_transport_security: true
+    auth:
+      disable_login_form: false
+    log:
+      mode: console
+      level: info
+
+# ========================================
+# ALERTMANAGER
+# ========================================
+alertmanager:
+  enabled: true
+  
+  alertmanagerSpec:
+    # Resources - Prod: High
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    
+    # Storage
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: gp3
+    
+    replicas: 3  # Prod: 3 replicas for HA
+    
+    # Pod anti-affinity
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - alertmanager
+            topologyKey: kubernetes.io/hostname
+  
+  # Alert configuration - Production
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url: "REPLACE_WITH_SLACK_WEBHOOK"
+      pagerduty_url: "https://events.pagerduty.com/v2/enqueue"
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'slack-notifications'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'pagerduty-critical'
+          continue: true
+        - match:
+            severity: critical
+          receiver: 'slack-critical'
+        - match:
+            severity: warning
+          receiver: 'slack-notifications'
+    receivers:
+      - name: 'slack-notifications'
+        slack_configs:
+          - channel: '#prod-alerts'
+            title: 'Prometheus Alert - Production'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+      - name: 'slack-critical'
+        slack_configs:
+          - channel: '#prod-critical'
+            title: '🚨 CRITICAL - Production'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+      - name: 'pagerduty-critical'
+        pagerduty_configs:
+          - service_key: 'REPLACE_WITH_PAGERDUTY_KEY'
+            description: '{{ .GroupLabels.alertname }}'
+
+# ========================================
+# NODE EXPORTER
+# ========================================
+nodeExporter:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+# ========================================
+# KUBE STATE METRICS
+# ========================================
+kubeStateMetrics:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  
+  replicas: 2  # Prod: 2 replicas for HA
+
+# ========================================
+# PROMETHEUS OPERATOR
+# ========================================
+prometheusOperator:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 400m
+      memory: 512Mi
+    limits:
+      cpu: 800m
+      memory: 1Gi
+  
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+
+# ========================================
+# DEFAULT SERVICE MONITORS
+# ========================================
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: false
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true

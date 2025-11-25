@@ -1,0 +1,242 @@
+# ========================================
+# PROMETHEUS STACK - DEV ENVIRONMENT
+# ========================================
+# Official Chart: kube-prometheus-stack v65.2.0
+# Source: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+# Full values reference: See default-values-reference.yaml (5413 lines)
+# Documentation: https://prometheus.io/docs/
+#
+# This file contains CUSTOM VALUES for Dev environment.
+# Only overrides necessary settings from chart defaults.
+# For all available options, see: default-values-reference.yaml
+#
+# kube-prometheus-stack includes:
+# - Prometheus Server (metrics collection & storage)
+# - Grafana (visualization dashboards)
+# - AlertManager (alerting)
+# - Node Exporter (host metrics)
+# - Kube State Metrics (K8s object metrics)
+# - Prometheus Operator (CRD management)
+#
+# References:
+# - Prometheus: https://prometheus.io/
+# - Grafana: https://grafana.com/
+# - AlertManager: https://prometheus.io/docs/alerting/latest/alertmanager/
+
+# ========================================
+# PROMETHEUS SERVER
+# ========================================
+prometheus:
+  prometheusSpec:
+    # Retention & Storage
+    retention: 7d  # Dev: 7 days retention (cost optimization)
+    retentionSize: "10GB"
+    
+    # Resources - Dev: Low resources
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi  # Dev: 20GB storage
+          storageClassName: gp3  # AWS EBS GP3
+    
+    # Scrape interval
+    scrapeInterval: 30s  # Dev: 30s (reduce load)
+    evaluationInterval: 30s
+    
+    # Service Monitor selectors
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    
+    # Replicas
+    replicas: 1  # Dev: Single replica
+
+# ========================================
+# GRAFANA
+# ========================================
+grafana:
+  enabled: true
+  
+  # Admin credentials
+  adminPassword: "admin123"  # CHANGE IN PRODUCTION!
+  
+  # Resources - Dev: Low resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  
+  # Persistence
+  persistence:
+    enabled: true
+    size: 5Gi  # Dev: 5GB for dashboards
+    storageClassName: gp3
+  
+  # Service type
+  service:
+    type: ClusterIP  # Dev: Use kubectl port-forward
+    port: 80
+  
+  # Ingress disabled for dev (use port-forward)
+  ingress:
+    enabled: false
+  
+  # Default dashboards
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: Asia/Singapore
+  
+  # Grafana config
+  grafana.ini:
+    server:
+      root_url: "http://localhost:3000"
+    analytics:
+      check_for_updates: false
+    security:
+      allow_embedding: true
+
+# ========================================
+# ALERTMANAGER
+# ========================================
+alertmanager:
+  enabled: true
+  
+  alertmanagerSpec:
+    # Resources - Dev: Minimal
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+    
+    # Storage
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi  # Dev: 5GB
+          storageClassName: gp3
+    
+    replicas: 1  # Dev: Single replica
+  
+  # Alert configuration (placeholder)
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'null'
+    receivers:
+      - name: 'null'
+
+# ========================================
+# NODE EXPORTER
+# ========================================
+# Collects hardware and OS metrics from nodes
+nodeExporter:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# ========================================
+# KUBE STATE METRICS
+# ========================================
+# Exposes Kubernetes object metrics (pods, deployments, etc)
+kubeStateMetrics:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
+# ========================================
+# PROMETHEUS OPERATOR
+# ========================================
+prometheusOperator:
+  enabled: true
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  
+  # Admission webhooks
+  admissionWebhooks:
+    enabled: true
+    patch:
+      enabled: true
+
+# ========================================
+# DEFAULT SERVICE MONITORS
+# ========================================
+# Disable some default monitors for dev (reduce noise)
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false  # Not exposed in EKS
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: false  # Not exposed in EKS
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+
+# ========================================
+# ADDITIONAL SCRAPE CONFIGS
+# ========================================
+# Add custom scrape configs if needed
+# prometheus:
+#   additionalScrapeConfigs:
+#     - job_name: 'my-app'
+#       static_configs:
+#         - targets: ['my-app.default.svc.cluster.local:8080']

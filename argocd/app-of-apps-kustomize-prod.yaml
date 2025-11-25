@@ -1,3 +1,18 @@
+# ============================================
+# APP OF APPS PATTERN - PRODUCTION ENVIRONMENT
+# ============================================
+# Pattern: App of Apps (ArgoCD best practice)
+# Official Docs: https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+# Reference: https://github.com/argoproj/argocd-example-apps/tree/master/apps
+#
+# Specification:
+#   API: argoproj.io/v1alpha1
+#   Kind: Application (ArgoCD CRD)
+#   Source: https://github.com/argoproj/argo-cd/blob/master/manifests/crds/application-crd.yaml
+#
+# Note: Manual sync for production (safety first)
+# ============================================
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,15 +26,10 @@ spec:
   project: default
   
   sources:
-    # AWS Load Balancer Controller
+    # Prometheus + Grafana Stack
     - repoURL: https://github.com/TomJennyDev/devops.git
       targetRevision: main
-      path: argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/prod
-    
-    # Metrics Server
-    - repoURL: https://github.com/TomJennyDev/devops.git
-      targetRevision: main
-      path: argocd/system-apps-kustomize/metrics-server/overlays/prod
+      path: argocd/system-apps-kustomize/prometheus/overlays/prod
   
   destination:
     server: https://kubernetes.default.svc

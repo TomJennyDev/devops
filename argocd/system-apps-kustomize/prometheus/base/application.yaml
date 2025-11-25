@@ -1,0 +1,67 @@
+# ============================================
+# PROMETHEUS STACK - ARGOCD APPLICATION
+# ============================================
+# Official Sources:
+#   Chart: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+#   ArtifactHub: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+#   Helm Repo: https://prometheus-community.github.io/helm-charts
+#   Documentation: https://prometheus.io/docs/
+#   Grafana Docs: https://grafana.com/docs/grafana/latest/
+#
+# Maintained by: Prometheus Community
+# License: Apache 2.0
+# Last Updated: 2025-11-25
+# ============================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    # Prometheus Helm Chart from official community repository
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 65.2.0  # Chart version - check latest: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+      helm:
+        releaseName: prometheus
+        valueFiles:
+          - $values/argocd/helm-values/prometheus/REPLACE_ENV-values.yaml
+    
+    # Git repo for values files
+    - repoURL: https://github.com/TomJennyDev/devops.git
+      targetRevision: main
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
