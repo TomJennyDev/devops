@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kube-system
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  # AWS Load Balancer Controller from official manifests
+  - https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.8.1/v2_8_1_full.yaml
+
+# Patch to use our ServiceAccount instead of the one in the manifest
+patchesStrategicMerge:
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    spec:
+      template:
+        spec:
+          serviceAccountName: aws-load-balancer-controller
+
+# Remove duplicate ServiceAccount from upstream manifest
+patchesJson6902:
+  - target:
+      version: v1
+      kind: ServiceAccount
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    patch: |-
+      - op: remove
+        path: /metadata
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: aws-load-balancer-controller
