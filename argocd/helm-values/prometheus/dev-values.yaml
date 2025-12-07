@@ -49,7 +49,7 @@ prometheus:
           resources:
             requests:
               storage: 20Gi  # Dev: 20GB storage
-          storageClassName: gp3  # AWS EBS GP3
+          storageClassName: gp2  # AWS EBS GP2
     
     # Scrape interval
     scrapeInterval: 30s  # Dev: 30s (reduce load)
@@ -85,7 +85,7 @@ grafana:
   persistence:
     enabled: true
     size: 5Gi  # Dev: 5GB for dashboards
-    storageClassName: gp3
+    storageClassName: gp2
   
   # Service type
   service:
@@ -133,7 +133,7 @@ alertmanager:
           resources:
             requests:
               storage: 5Gi  # Dev: 5GB
-          storageClassName: gp3
+          storageClassName: gp2
     
     replicas: 1  # Dev: Single replica
   
