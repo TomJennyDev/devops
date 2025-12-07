@@ -32,14 +32,14 @@ prometheus:
     retention: 7d  # Dev: 7 days retention (cost optimization)
     retentionSize: "10GB"
     
-    # Resources - Dev: Low resources
+    # Resources - Dev: Minimal resources for single node
     resources:
       requests:
-        cpu: 200m
-        memory: 1Gi
+        cpu: 150m
+        memory: 512Mi
       limits:
-        cpu: 500m
-        memory: 2Gi
+        cpu: 400m
+        memory: 1Gi
     
     # Storage
     storageSpec:
