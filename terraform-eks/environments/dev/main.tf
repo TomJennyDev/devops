@@ -38,4 +38,18 @@ module "eks" {
   coredns_version                     = var.coredns_version
   kube_proxy_version                  = var.kube_proxy_version
   common_tags                         = var.common_tags
+  
+  # Controllers
+  enable_aws_load_balancer_controller = var.enable_aws_load_balancer_controller
+  enable_external_dns                 = var.enable_external_dns
+  
+  # Route53 DNS variables
+  domain_name                         = var.domain_name
+  create_dns_records                  = var.create_dns_records
+  argocd_dns_enabled                  = var.argocd_dns_enabled
+  argocd_alb_dns_name                 = var.argocd_alb_dns_name
+  argocd_alb_zone_id                  = var.argocd_alb_zone_id
+  create_wildcard_dns_record          = var.create_wildcard_dns_record
+  wildcard_alb_dns_name               = var.wildcard_alb_dns_name
+  wildcard_alb_zone_id                = var.wildcard_alb_zone_id
 }

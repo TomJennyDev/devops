@@ -157,3 +157,75 @@ variable "common_tags" {
   description = "Common tags"
   type        = map(string)
 }
+
+# ========================================
+# ROUTE53 DNS VARIABLES
+# ========================================
+variable "domain_name" {
+  description = "Domain name for Route53"
+  type        = string
+  default     = ""
+}
+
+variable "create_dns_records" {
+  description = "Create DNS records"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_dns_enabled" {
+  description = "Create ArgoCD DNS record"
+  type        = bool
+  default     = false
+}
+
+# ========================================
+# CONTROLLERS
+# ========================================
+
+variable "enable_aws_load_balancer_controller" {
+  description = "Enable AWS Load Balancer Controller"
+  type        = bool
+  default     = true
+}
+
+variable "enable_external_dns" {
+  description = "Enable External DNS for Route53"
+  type        = bool
+  default     = false
+}
+
+# ========================================
+# ROUTE53 DNS
+# ========================================
+
+variable "argocd_alb_dns_name" {
+  description = "ALB DNS name for ArgoCD"
+  type        = string
+  default     = ""
+}
+
+variable "argocd_alb_zone_id" {
+  description = "ALB Zone ID for ArgoCD"
+  type        = string
+  default     = ""
+}
+
+variable "create_wildcard_dns_record" {
+  description = "Create wildcard DNS record"
+  type        = bool
+  default     = false
+}
+
+variable "wildcard_alb_dns_name" {
+  description = "ALB DNS name for wildcard"
+  type        = string
+  default     = ""
+}
+
+variable "wildcard_alb_zone_id" {
+  description = "ALB Zone ID for wildcard"
+  type        = string
+  default     = ""
+}
+

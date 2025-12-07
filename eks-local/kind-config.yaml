@@ -1,0 +1,112 @@
+# ============================================
+# Kind Cluster Configuration
+# ============================================
+# Multi-node cluster giống EKS
+# Ref: https://kind.sigs.k8s.io/docs/user/configuration/
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+# Cluster name
+name: dev-cluster
+
+# Networking configuration
+networking:
+  # Disable default CNI, we'll install our own
+  disableDefaultCNI: false
+  
+  # Pod subnet
+  podSubnet: "10.244.0.0/16"
+  
+  # Service subnet
+  serviceSubnet: "10.96.0.0/12"
+  
+  # API server port
+  apiServerPort: 6443
+
+# Nodes configuration
+nodes:
+  # Control plane node
+  - role: control-plane
+    # Kubernetes version
+    image: kindest/node:v1.29.0
+    
+    # Extra port mappings for Ingress
+    extraPortMappings:
+      # HTTP
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+        listenAddress: "0.0.0.0"
+      
+      # HTTPS
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+        listenAddress: "0.0.0.0"
+      
+      # ArgoCD (optional)
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      
+      # Prometheus (optional)
+      - containerPort: 30090
+        hostPort: 9090
+        protocol: TCP
+    
+    # Node labels
+    labels:
+      node-role.kubernetes.io/control-plane: ""
+      
+    # Kubeadm config patches
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            # Enable audit logging
+            audit-log-path: /var/log/kubernetes/audit.log
+            audit-log-maxage: "30"
+            audit-log-maxbackup: "3"
+            audit-log-maxsize: "100"
+  
+  # Worker node 1
+  - role: worker
+    image: kindest/node:v1.29.0
+    labels:
+      node-role.kubernetes.io/worker: ""
+      workload-type: application
+    
+    # Extra mounts for persistent volumes
+    extraMounts:
+      - hostPath: /tmp/kind-data-1
+        containerPath: /data
+  
+  # Worker node 2
+  - role: worker
+    image: kindest/node:v1.29.0
+    labels:
+      node-role.kubernetes.io/worker: ""
+      workload-type: application
+    
+    # Extra mounts for persistent volumes
+    extraMounts:
+      - hostPath: /tmp/kind-data-2
+        containerPath: /data
+
+# Feature gates
+featureGates:
+  # Enable all feature gates (optional)
+  # EphemeralContainers: true
+
+# Runtime config
+runtimeConfig:
+  # API versions
+  # api/all: true
+
+# Containerd config patches
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
+      endpoint = ["http://kind-registry:5000"]

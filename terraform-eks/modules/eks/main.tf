@@ -55,10 +55,16 @@ resource "aws_eks_addon" "vpc_cni" {
 resource "aws_eks_addon" "coredns" {
   count = var.enable_cluster_addons ? 1 : 0
 
-  cluster_name             = aws_eks_cluster.main.name
-  addon_name               = "coredns"
-  addon_version            = var.coredns_version
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "coredns"
+  addon_version               = var.coredns_version
+  resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "PRESERVE"
+
+  # Wait for node groups to be ready
+  depends_on = [
+    aws_eks_cluster.main
+  ]
 
   tags = var.common_tags
 }

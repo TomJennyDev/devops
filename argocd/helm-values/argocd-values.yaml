@@ -1,0 +1,349 @@
+## ============================================
+## ARGOCD HELM VALUES - GitHub Workflow Integration
+## ============================================
+## Optimized for GitHub Actions CI/CD workflow
+## Based on: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+## Last Updated: 2025-12-05
+
+# -- Provide a name in place of `argocd`
+nameOverride: argocd
+
+## ============================================
+## GLOBAL CONFIGURATION
+## ============================================
+global:
+  # -- Default domain used by all components
+  domain: argocd.do2506.click  # ⚠️ THAY ĐỔI domain của bạn
+
+  # Default image used by all components
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: ""  # Uses chart appVersion
+    imagePullPolicy: IfNotPresent
+
+  # Default logging options
+  logging:
+    format: json  # Better for log aggregation
+    level: info
+
+  # -- Toggle and define pod-level security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    fsGroup: 999
+
+## ============================================
+## ARGO CD CONFIGS
+## ============================================
+configs:
+  # -- Repository credentials configuration
+  repositories:
+    # DevOps system apps repository
+    devops:
+      url: https://github.com/TomJennyDev/devops.git
+      type: git
+      name: devops
+    
+    # ⚠️ GitOps repository - CRITICAL for GitHub Workflow
+    flowise-gitops:
+      url: https://github.com/TomJennyDev/flowise-gitops.git
+      type: git
+      name: flowise-gitops
+      # For private repository, uncomment:
+      # username: <github-username>
+      # password: <github-personal-access-token>
+
+  # General Argo CD configuration
+  params:
+    # ⚠️ CRITICAL: Enable for GitHub Actions gRPC-web support
+    server.insecure: "false"
+    server.enable.gzip: "true"
+    
+    # Timeout settings for application reconciliation
+    timeout.reconciliation: "180s"
+    timeout.hard.reconciliation: "0"
+    
+    # Application instance label
+    application.instanceLabelKey: "argocd.argoproj.io/instance"
+
+  # Argo CD configuration (ConfigMap)
+  cm:
+    # Repository refresh timeout
+    timeout.reconciliation: "180s"
+    
+    # Enable status badge
+    statusbadge.enabled: "true"
+    
+    # Resource exclusions
+    resource.exclusions: |
+      - apiGroups:
+        - cilium.io
+        kinds:
+        - CiliumIdentity
+        clusters:
+        - "*"
+
+  # RBAC configuration
+  rbac:
+    # Default role for new users
+    policy.default: "role:readonly"
+    
+    # Enable API key generation scopes
+    scopes: "[accounts:apiKey]"
+    
+    # -- Policy CSV for defining custom roles and permissions
+    policy.csv: |
+      # Admin role - full access
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, accounts, *, *, allow
+      p, role:admin, gpgkeys, *, *, allow
+      p, role:admin, certificates, *, *, allow
+      
+      # ⚠️ CI/CD role - for GitHub Actions
+      p, role:cicd, applications, get, */*, allow
+      p, role:cicd, applications, sync, */*, allow
+      p, role:cicd, applications, refresh, */*, allow
+      p, role:cicd, applications, override, */*, allow
+      p, role:cicd, repositories, get, *, allow
+      p, role:cicd, repositories, list, *, allow
+      
+      # ReadOnly role
+      p, role:readonly, applications, get, */*, allow
+      p, role:readonly, repositories, get, *, allow
+      p, role:readonly, clusters, get, *, allow
+      p, role:readonly, projects, get, *, allow
+      
+      # Bind admin user to admin role
+      g, admin, role:admin
+
+  # Secret configuration
+  secret:
+    # -- Bcrypt hashed admin password
+    # Generate with: htpasswd -nbBC 10 "" YOUR_PASSWORD | tr -d ':\n' | sed 's/$2y/$2a/'
+    # Default password: admin123
+    argocdServerAdminPassword: "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/XGN2opqjr9cTPq"
+
+## ============================================
+## ARGO CD SERVER
+## ============================================
+server:
+  # -- Number of replicas for the server
+  replicas: 2
+
+  # Server service configuration
+  service:
+    type: ClusterIP
+    annotations: {}
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    
+    annotations:
+      # ALB Configuration
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/backend-protocol: HTTPS
+      
+      # SSL/TLS Configuration
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:ACCOUNT_ID:certificate/CERT_ID  # ⚠️ THAY ĐỔI
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: '443'
+      alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      
+      # Health Check
+      alb.ingress.kubernetes.io/healthcheck-path: /healthz
+      alb.ingress.kubernetes.io/healthcheck-port: '8080'
+      alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+      alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+      alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+      alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+      alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+      
+      # Additional Settings
+      alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=300
+      alb.ingress.kubernetes.io/tags: Environment=production,Application=argocd,ManagedBy=helm
+    
+    hosts:
+      - argocd.yourdomain.com  # ⚠️ THAY ĐỔI
+    
+    tls:
+      - secretName: argocd-tls
+        hosts:
+          - argocd.yourdomain.com
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: argocd-server
+    automountServiceAccountToken: true
+
+## ============================================
+## REPO SERVER
+## ============================================
+repoServer:
+  # -- Number of replicas for the repo server
+  replicas: 2
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: argocd-repo-server
+    automountServiceAccountToken: true
+
+## ============================================
+## APPLICATION CONTROLLER
+## ============================================
+controller:
+  # -- Number of replicas for the controller
+  replicas: 1
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: argocd-application-controller
+    automountServiceAccountToken: true
+
+## ============================================
+## DEX (SSO) - Disabled for simplicity
+## ============================================
+dex:
+  enabled: false
+
+## ============================================
+## REDIS
+## ============================================
+redis:
+  enabled: true
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+
+## ============================================
+## REDIS HA (for production)
+## ============================================
+redis-ha:
+  enabled: false  # Set to true for production high availability
+
+## ============================================
+## EXTERNAL REDIS (optional)
+## ============================================
+externalRedis:
+  host: ""
+  port: 6379
+  username: ""
+  password: ""
+
+## ============================================
+## APPLICATION SET CONTROLLER
+## ============================================
+applicationSet:
+  enabled: true
+  replicas: 1
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: argocd-applicationset-controller
+    automountServiceAccountToken: true
+
+## ============================================
+## NOTIFICATIONS CONTROLLER
+## ============================================
+notifications:
+  enabled: false
+  # Enable if you want Slack/Email notifications
+  # notifiers:
+  #   service.slack: |
+  #     token: xoxb-your-slack-token
+  # subscriptions:
+  #   - recipients:
+  #     - slack:deployments-channel
+  #     triggers:
+  #     - on-deployed
+  #     - on-health-degraded
+
+## ============================================
+## CRDs
+## ============================================
+crds:
+  install: true
+  keep: true

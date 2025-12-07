@@ -244,3 +244,54 @@ variable "common_tags" {
     ManagedBy   = "terraform"
   }
 }
+
+# ========================================
+# ROUTE53 DNS VARIABLES
+# ========================================
+variable "domain_name" {
+  description = "Domain name for Route53 hosted zone"
+  type        = string
+  default     = ""
+}
+
+variable "create_dns_records" {
+  description = "Whether to create DNS records in Route53"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_dns_enabled" {
+  description = "Whether to create ArgoCD DNS record"
+  type        = bool
+  default     = false
+}
+
+variable "argocd_alb_dns_name" {
+  description = "ALB DNS name for ArgoCD (get from kubectl after deployment)"
+  type        = string
+  default     = ""
+}
+
+variable "argocd_alb_zone_id" {
+  description = "ALB Zone ID for ArgoCD (get from kubectl after deployment)"
+  type        = string
+  default     = ""
+}
+
+variable "create_wildcard_dns_record" {
+  description = "Whether to create wildcard DNS record for app ingresses"
+  type        = bool
+  default     = false
+}
+
+variable "wildcard_alb_dns_name" {
+  description = "ALB DNS name for wildcard record"
+  type        = string
+  default     = ""
+}
+
+variable "wildcard_alb_zone_id" {
+  description = "ALB Zone ID for wildcard record"
+  type        = string
+  default     = ""
+}

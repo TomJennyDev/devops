@@ -3,35 +3,24 @@ kind: Kustomization
 
 namespace: kube-system
 
+# Use Helm chart instead of raw manifests
+helmCharts:
+  - name: aws-load-balancer-controller
+    repo: https://aws.github.io/eks-charts
+    version: 1.8.1
+    releaseName: aws-load-balancer-controller
+    namespace: kube-system
+    valuesInline:
+      clusterName: my-eks-dev
+      region: ap-southeast-1
+      vpcId: vpc-0e6ca42c7851c46c4
+      serviceAccount:
+        create: false
+        name: aws-load-balancer-controller
+
 resources:
   - namespace.yaml
   - serviceaccount.yaml
-  # AWS Load Balancer Controller from official manifests
-  - https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.8.1/v2_8_1_full.yaml
-
-# Patch to use our ServiceAccount instead of the one in the manifest
-patchesStrategicMerge:
-  - |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: aws-load-balancer-controller
-      namespace: kube-system
-    spec:
-      template:
-        spec:
-          serviceAccountName: aws-load-balancer-controller
-
-# Remove duplicate ServiceAccount from upstream manifest
-patchesJson6902:
-  - target:
-      version: v1
-      kind: ServiceAccount
-      name: aws-load-balancer-controller
-      namespace: kube-system
-    patch: |-
-      - op: remove
-        path: /metadata
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize

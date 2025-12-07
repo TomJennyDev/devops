@@ -9,9 +9,31 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/TomJennyDev/devops.git
-    targetRevision: main
-    path: argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/dev
+    repoURL: https://aws.github.io/eks-charts
+    chart: aws-load-balancer-controller
+    targetRevision: 1.8.1
+    helm:
+      releaseName: aws-load-balancer-controller
+      values: |
+        clusterName: my-eks-dev
+        region: ap-southeast-1
+        vpcId: vpc-0e6ca42c7851c46c4
+        
+        serviceAccount:
+          create: true
+          name: aws-load-balancer-controller
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::372836560690:role/my-eks-dev-aws-load-balancer-controller
+        
+        replicaCount: 2
+        
+        resources:
+          limits:
+            cpu: 200m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
   
   destination:
     server: https://kubernetes.default.svc
@@ -24,16 +46,9 @@ spec:
       allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
-  
-  ignoreDifferences:
-    - group: ""
-      kind: ServiceAccount
-      jsonPointers:
-        - /secrets

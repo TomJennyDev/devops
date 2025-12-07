@@ -134,3 +134,21 @@ module "external_dns" {
   
   depends_on = [module.eks]
 }
+
+# ========================================
+# ROUTE53 MODULE
+# ========================================
+module "route53" {
+  source = "./modules/route53"
+  
+  domain_name             = var.domain_name
+  create_dns_records      = var.create_dns_records
+  argocd_enabled          = var.argocd_dns_enabled
+  argocd_alb_dns_name     = var.argocd_alb_dns_name
+  argocd_alb_zone_id      = var.argocd_alb_zone_id
+  create_wildcard_record  = var.create_wildcard_dns_record
+  wildcard_alb_dns_name   = var.wildcard_alb_dns_name
+  wildcard_alb_zone_id    = var.wildcard_alb_zone_id
+  
+  depends_on = [module.eks]
+}
