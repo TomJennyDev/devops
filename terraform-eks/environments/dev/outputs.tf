@@ -41,3 +41,28 @@ output "external_dns_role_arn" {
   description = "IAM role ARN for External DNS (if enabled)"
   value       = module.eks.external_dns_role_arn
 }
+
+# ========================================
+# ECR OUTPUTS (Independent Module)
+# ========================================
+
+output "ecr_repository_urls" {
+  description = "ECR repository URLs"
+  value       = module.ecr.repository_urls
+}
+
+output "ecr_flowise_server_url" {
+  description = "ECR URL for flowise-server"
+  value       = module.ecr.flowise_server_url
+}
+
+output "ecr_flowise_ui_url" {
+  description = "ECR URL for flowise-ui"
+  value       = module.ecr.flowise_ui_url
+}
+
+output "ecr_docker_login_command" {
+  description = "Command to authenticate Docker with ECR"
+  value       = module.ecr.docker_login_command
+}
+

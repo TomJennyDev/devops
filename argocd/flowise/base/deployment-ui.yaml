@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-ui
+  labels:
+    app: flowise
+    component: ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flowise
+      component: ui
+  template:
+    metadata:
+      labels:
+        app: flowise
+        component: ui
+    spec:
+      containers:
+      - name: ui
+        image: flowise-ui:latest  # Will be replaced by Kustomize
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        
+        # ============================================
+        # ENVIRONMENT VARIABLES - UI CONFIGURATION
+        # ============================================
+        env:
+        # Backend API endpoint
+        - name: VITE_API_URL
+          value: "http://flowise-server:3000"  # Internal service DNS
+        
+        # Public API endpoint (for browser)
+        - name: VITE_PUBLIC_API_URL
+          value: "/api"  # Will be proxied through ingress
+        
+        # Feature flags
+        - name: VITE_ENABLE_AUTH
+          value: "true"
+        
+        - name: VITE_ENABLE_ANALYTICS
+          value: "false"
+        
+        # Branding
+        - name: VITE_APP_TITLE
+          value: "Flowise"
+        
+        # Resource limits
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3

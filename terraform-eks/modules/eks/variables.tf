@@ -83,3 +83,9 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "node_group_id" {
+  description = "Node group ID to wait for before creating CoreDNS addon"
+  type        = string
+  default     = null
+}

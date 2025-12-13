@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+namespace: flowise-production
+
+commonLabels:
+  environment: production
+
+resources:
+  - ingress.yaml
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
+images:
+  - name: flowise-server
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
+    newTag: latest
+  - name: flowise-ui
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
+    newTag: latest
+
+configMapGenerator:
+  - name: flowise-env
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=warn
+      - DEBUG=false
+
+# ⚠️ Use AWS Secrets Manager or Sealed Secrets in production
+# Do NOT store production secrets in Git
+secretGenerator:
+  - name: flowise-secrets
+    literals:
+      - database-host=flowise-prod-db.xxxxx.ap-southeast-1.rds.amazonaws.com
+      - database-user=flowise_prod
+      - database-password=USE-AWS-SECRETS-MANAGER

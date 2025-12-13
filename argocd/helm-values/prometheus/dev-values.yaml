@@ -29,17 +29,18 @@
 prometheus:
   prometheusSpec:
     # Retention & Storage
-    retention: 7d  # Dev: 7 days retention (cost optimization)
-    retentionSize: "10GB"
+    retention: 15d  # Dev: 15 days retention (more history for analysis)
+    retentionSize: "30GB"  # Increased for longer retention
     
-    # Resources - Dev: Minimal resources for single node
+    # Resources - UPDATED for 2-node cluster
+    # Can handle more metrics and queries
     resources:
       requests:
-        cpu: 150m
-        memory: 512Mi
+        cpu: 300m      # Increased for better performance
+        memory: 1Gi    # Increased for TSDB
       limits:
-        cpu: 400m
-        memory: 1Gi
+        cpu: 1000m     # Allow burst for heavy queries
+        memory: 2Gi    # Handle memory spikes
     
     # Storage
     storageSpec:
@@ -48,11 +49,11 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 20Gi  # Dev: 20GB storage
+              storage: 50Gi  # Increased for 15d retention
           storageClassName: gp2  # AWS EBS GP2
     
     # Scrape interval
-    scrapeInterval: 30s  # Dev: 30s (reduce load)
+    scrapeInterval: 30s  # 30s is good balance
     evaluationInterval: 30s
     
     # Service Monitor selectors
@@ -61,7 +62,21 @@ prometheus:
     ruleSelectorNilUsesHelmValues: false
     
     # Replicas
-    replicas: 1  # Dev: Single replica
+    replicas: 2  # HA: 2 replicas across nodes
+    
+    # Pod anti-affinity (spread across nodes)
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - prometheus
+            topologyKey: kubernetes.io/hostname
 
 # ========================================
 # GRAFANA
@@ -72,20 +87,35 @@ grafana:
   # Admin credentials
   adminPassword: "admin123"  # CHANGE IN PRODUCTION!
   
-  # Resources - Dev: Low resources
+  # Resources - UPDATED for better UI performance
+  # Grafana can be heavy with many dashboards
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 200m      # Increased for dashboard rendering
+      memory: 512Mi  # More memory for caching
     limits:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 500m      # Allow burst for dashboard loads
+      memory: 1Gi    # Handle multiple users
   
   # Persistence
   persistence:
     enabled: true
-    size: 5Gi  # Dev: 5GB for dashboards
+    size: 10Gi  # More space for dashboards & plugins
     storageClassName: gp2
+  
+  # Replicas for HA
+  replicas: 2  # HA: 2 replicas across nodes
+  
+  # Pod anti-affinity (spread across nodes)
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+          topologyKey: kubernetes.io/hostname
   
   # Service type
   service:
@@ -108,6 +138,11 @@ grafana:
       check_for_updates: false
     security:
       allow_embedding: true
+    # Performance tuning
+    database:
+      cache_mode: shared
+    plugins:
+      enable_alpha: false
 
 # ========================================
 # ALERTMANAGER
@@ -116,14 +151,14 @@ alertmanager:
   enabled: true
   
   alertmanagerSpec:
-    # Resources - Dev: Minimal
+    # Resources - Adequate for alert handling
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 100m      # Increased for alert processing
+        memory: 256Mi  # More memory for alert history
       limits:
-        cpu: 100m
-        memory: 256Mi
+        cpu: 200m      # Allow burst
+        memory: 512Mi  # Handle alert storms
     
     # Storage
     storage:
@@ -132,10 +167,10 @@ alertmanager:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 5Gi  # Dev: 5GB
+              storage: 10Gi  # More space for alert history
           storageClassName: gp2
     
-    replicas: 1  # Dev: Single replica
+    replicas: 2  # HA: 2 replicas across nodes
   
   # Alert configuration (placeholder)
   config:
@@ -154,31 +189,33 @@ alertmanager:
 # NODE EXPORTER
 # ========================================
 # Collects hardware and OS metrics from nodes
+# Runs as DaemonSet (1 pod per node = 2 pods)
 nodeExporter:
   enabled: true
   
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 100m      # Increased for more detailed metrics
+      memory: 128Mi  # More memory for metric collection
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 200m      # Allow burst during collection
+      memory: 256Mi  # Handle metric spikes
 
 # ========================================
 # KUBE STATE METRICS
 # ========================================
 # Exposes Kubernetes object metrics (pods, deployments, etc)
+# More objects = more resources needed
 kubeStateMetrics:
   enabled: true
   
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 100m      # Increased for more K8s objects
+      memory: 256Mi  # More memory for object tracking
     limits:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 250m      # Allow burst
+      memory: 512Mi  # Handle large clusters
 
 # ========================================
 # PROMETHEUS OPERATOR
@@ -188,17 +225,24 @@ prometheusOperator:
   
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 150m      # Increased for CRD management
+      memory: 256Mi  # More memory for operator logic
     limits:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 300m      # Allow burst for reconciliation
+      memory: 512Mi  # Handle large configurations
   
   # Admission webhooks
   admissionWebhooks:
     enabled: true
     patch:
       enabled: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
 
 # ========================================
 # DEFAULT SERVICE MONITORS

@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+namespace: flowise-staging
+
+commonLabels:
+  environment: staging
+
+resources:
+  - ingress.yaml
+
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
+images:
+  - name: flowise-server
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
+    newTag: latest
+  - name: flowise-ui
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
+    newTag: latest
+
+configMapGenerator:
+  - name: flowise-env
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=info
+      - DEBUG=false
+
+secretGenerator:
+  - name: flowise-secrets
+    literals:
+      - database-host=postgres.flowise-staging.svc.cluster.local
+      - database-user=flowise_staging
+      - database-password=staging-password-456

@@ -51,3 +51,9 @@ kubeconfig_*
 
 # Ignore lock files (optional, some teams commit this)
 # .terraform.lock.hcl
+*.log
+tfplan
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl

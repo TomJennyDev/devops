@@ -31,7 +31,7 @@ spec:
       helm:
         releaseName: prometheus
         valueFiles:
-          - $values/argocd/helm-values/prometheus/REPLACE_ENV-values.yaml
+          - $values/argocd/helm-values/prometheus/dev-values.yaml
     
     # Git repo for values files
     - repoURL: https://github.com/TomJennyDev/devops.git

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-server
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: server
+        env:
+        - name: LOG_LEVEL
+          value: "info"
+        
+        - name: DEBUG
+          value: "false"
+        
+        - name: FLOWISE_PASSWORD
+          value: "staging123"
+        
+        - name: FLOWISE_SECRETKEY_OVERWRITE
+          value: "staging-secret-key-change-in-prod"
+        
+        - name: CORS_ORIGINS
+          value: "https://flowise-staging.do2506.click"
+        
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: flowise-env
+              key: ENVIRONMENT
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-ui
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: ui
+        env:
+        - name: VITE_PUBLIC_API_URL
+          value: "https://flowise-staging.do2506.click/api"

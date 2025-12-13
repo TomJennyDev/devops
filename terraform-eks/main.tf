@@ -105,6 +105,34 @@ module "node_groups" {
 }
 
 # ========================================
+# COREDNS ADDON (CRITICAL: Must be after node groups)
+# ========================================
+# CoreDNS addon is created here (not in eks module) to ensure proper dependency:
+# EKS Cluster -> VPC CNI -> Node Groups -> CoreDNS
+# CoreDNS pods need nodes to schedule on, so we must wait for node_groups module
+resource "aws_eks_addon" "coredns" {
+  count = var.enable_cluster_addons ? 1 : 0
+
+  cluster_name                = var.cluster_name
+  addon_name                  = "coredns"
+  addon_version               = var.coredns_version
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "PRESERVE"
+
+  tags = var.common_tags
+
+  # CRITICAL dependency chain:
+  # 1. EKS cluster must exist
+  # 2. VPC CNI addon must be ready (for pod networking)
+  # 3. Node groups must be created and nodes ready
+  # 4. Then CoreDNS can schedule its pods
+  depends_on = [
+    module.eks,
+    module.node_groups
+  ]
+}
+
+# ========================================
 # ALB CONTROLLER MODULE
 # ========================================
 module "alb_controller" {
@@ -151,4 +179,23 @@ module "route53" {
   wildcard_alb_zone_id    = var.wildcard_alb_zone_id
   
   depends_on = [module.eks]
+}
+
+# ========================================
+# RESOURCE LIMITS MODULE (K8s Resources)
+# ========================================
+module "resource_limits" {
+  source = "./modules/resource-limits"
+  
+  count = var.enable_resource_limits ? 1 : 0
+  
+  namespaces              = var.resource_limit_namespaces
+  limit_ranges            = var.limit_ranges
+  resource_quotas         = var.resource_quotas
+  priority_classes        = var.priority_classes
+  pod_disruption_budgets  = var.pod_disruption_budgets
+  enable_network_policies = var.enable_network_policies
+  common_tags             = var.common_tags
+  
+  depends_on = [module.eks, module.node_groups]
 }

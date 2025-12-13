@@ -1,16 +1,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: kube-system
-
 resources:
   - ../../base
 
 # Dev-specific patches
-patchesStrategicMerge:
-  - serviceaccount-patch.yaml
-  - deployment-patch.yaml
+patches:
+  - path: application-patch.yaml
+    target:
+      kind: Application
+      name: aws-load-balancer-controller
+  - path: serviceaccount-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: aws-load-balancer-controller
 
-# Add common labels
-commonLabels:
-  environment: dev
+# Add environment label
+labels:
+  - pairs:
+      environment: dev

@@ -229,3 +229,111 @@ variable "wildcard_alb_zone_id" {
   default     = ""
 }
 
+# ========================================
+# RESOURCE LIMITS VARIABLES
+# ========================================
+variable "enable_resource_limits" {
+  description = "Enable resource limits"
+  type        = bool
+  default     = false
+}
+
+variable "resource_limit_namespaces" {
+  description = "Namespaces to manage"
+  type        = list(string)
+  default     = ["default"]
+}
+
+variable "limit_ranges" {
+  description = "LimitRange configurations"
+  type = map(object({
+    namespace = string
+    container_default_limit_cpu      = string
+    container_default_limit_memory   = string
+    container_default_request_cpu    = string
+    container_default_request_memory = string
+    container_max_cpu    = string
+    container_max_memory = string
+    container_min_cpu    = string
+    container_min_memory = string
+    pod_max_cpu    = string
+    pod_max_memory = string
+    pod_min_cpu    = string
+    pod_min_memory = string
+  }))
+  default = {}
+}
+
+variable "resource_quotas" {
+  description = "ResourceQuota configurations"
+  type = map(object({
+    namespace = string
+    requests_cpu    = string
+    requests_memory = string
+    limits_cpu      = string
+    limits_memory   = string
+    max_pods     = number
+    max_services = number
+    max_pvcs     = number
+    requests_storage = string
+  }))
+  default = {}
+}
+
+variable "priority_classes" {
+  description = "Priority classes"
+  type = map(object({
+    value              = number
+    global_default     = optional(bool, false)
+    description        = optional(string, "")
+    preemption_policy  = optional(string, "PreemptLowerPriority")
+  }))
+  default = {}
+}
+
+variable "pod_disruption_budgets" {
+  description = "Pod Disruption Budgets"
+  type = map(object({
+    namespace        = string
+    max_unavailable  = optional(string)
+    min_available    = optional(string)
+    selector_labels  = map(string)
+  }))
+  default = {}
+}
+
+variable "enable_network_policies" {
+  description = "Enable network policies"
+  type        = bool
+  default     = false
+}
+
+# ========================================
+# ECR VARIABLES (Independent Module)
+# ========================================
+# ECR doesn't depend on other modules - can be managed separately
+
+variable "ecr_repositories" {
+  description = "Map of ECR repositories to create"
+  type = map(object({
+    image_tag_mutability = optional(string, "MUTABLE")
+    scan_on_push         = optional(bool, true)
+    max_image_count      = optional(number, 30)
+    untagged_days        = optional(number, 7)
+    repository_policy    = optional(string, null)
+    tags                 = optional(map(string), {})
+  }))
+  default = {}
+}
+
+variable "ecr_encryption_type" {
+  description = "Encryption type for ECR (AES256 or KMS)"
+  type        = string
+  default     = "AES256"
+}
+
+variable "ecr_force_delete" {
+  description = "Force delete ECR repositories even if they contain images"
+  type        = bool
+  default     = false
+}

@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flowise-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    environment: production
+    app: flowise
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/TomJennyDev/devops.git
+    targetRevision: main
+    path: argocd/flowise/overlays/production
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: flowise-production
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false  # Manual approval for production
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  # Require manual sync for production
+  info:
+    - name: 'Manual Sync Required'
+      value: 'Production requires manual approval for sync'

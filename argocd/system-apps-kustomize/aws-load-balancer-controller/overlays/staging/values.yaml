@@ -1,0 +1,24 @@
+# ==================================================
+# AWS Load Balancer Controller - Staging Environment Values
+# ==================================================
+# ⚠️ UPDATE these values after running 'terraform apply' for staging
+
+# Cluster configuration
+clusterName: my-eks-staging
+region: ap-southeast-1
+vpcId: vpc-XXXXXXXXX  # UPDATE with staging VPC ID
+
+# IAM Role for IRSA
+iamRoleArn: arn:aws:iam::372836560690:role/my-eks-staging-aws-load-balancer-controller
+
+# Controller settings
+replicaCount: 2  # HA for staging
+
+# Resource limits (higher for staging)
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi

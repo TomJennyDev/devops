@@ -1,0 +1,24 @@
+# ==================================================
+# AWS Load Balancer Controller - Production Environment Values
+# ==================================================
+# ⚠️ UPDATE these values after running 'terraform apply' for production
+
+# Cluster configuration
+clusterName: my-eks-prod
+region: ap-southeast-1
+vpcId: vpc-XXXXXXXXX  # UPDATE with production VPC ID
+
+# IAM Role for IRSA
+iamRoleArn: arn:aws:iam::372836560690:role/my-eks-prod-aws-load-balancer-controller
+
+# Controller settings
+replicaCount: 3  # HA: 3 replicas for production
+
+# Resource limits (production-grade)
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi

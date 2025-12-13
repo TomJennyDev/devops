@@ -52,22 +52,25 @@ resource "aws_eks_addon" "vpc_cni" {
   tags = var.common_tags
 }
 
-resource "aws_eks_addon" "coredns" {
-  count = var.enable_cluster_addons ? 1 : 0
+# NOTE: CoreDNS addon moved to root module (main.tf)
+# Reason: CoreDNS needs node groups to be ready, but node_groups module
+# is created after eks module. Moving CoreDNS to root ensures proper dependency chain:
+# eks module -> node_groups module -> coredns addon
+# This prevents the 20-minute timeout issue where CoreDNS waits for nodes to schedule pods
 
-  cluster_name                = aws_eks_cluster.main.name
-  addon_name                  = "coredns"
-  addon_version               = var.coredns_version
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "PRESERVE"
-
-  # Wait for node groups to be ready
-  depends_on = [
-    aws_eks_cluster.main
-  ]
-
-  tags = var.common_tags
-}
+# resource "aws_eks_addon" "coredns" {
+#   count = var.enable_cluster_addons ? 1 : 0
+#   cluster_name                = aws_eks_cluster.main.name
+#   addon_name                  = "coredns"
+#   addon_version               = var.coredns_version
+#   resolve_conflicts_on_create = "OVERWRITE"
+#   resolve_conflicts_on_update = "PRESERVE"
+#   depends_on = [
+#     aws_eks_cluster.main,
+#     aws_eks_addon.vpc_cni
+#   ]
+#   tags = var.common_tags
+# }
 
 resource "aws_eks_addon" "kube_proxy" {
   count = var.enable_cluster_addons ? 1 : 0

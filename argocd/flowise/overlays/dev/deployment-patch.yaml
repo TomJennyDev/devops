@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-server
+spec:
+  replicas: 1  # Dev: single replica
+  template:
+    spec:
+      containers:
+      - name: server
+        env:
+        # Override base env vars for dev
+        - name: LOG_LEVEL
+          value: "debug"
+        
+        - name: DEBUG
+          value: "true"
+        
+        - name: FLOWISE_PASSWORD
+          value: "dev123"
+        
+        - name: FLOWISE_SECRETKEY_OVERWRITE
+          value: "dev-secret-key-change-in-prod"
+        
+        - name: CORS_ORIGINS
+          value: "*"  # Allow all origins in dev
+        
+        # Add dev-specific env from ConfigMap
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: flowise-env
+              key: ENVIRONMENT
+        
+        resources:
+          requests:
+            cpu: 100m      # Lower resources for dev
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-ui
+spec:
+  replicas: 1  # Dev: single replica
+  template:
+    spec:
+      containers:
+      - name: ui
+        env:
+        # Override for dev
+        - name: VITE_PUBLIC_API_URL
+          value: "https://flowise-dev.do2506.click/api"
+        
+        - name: VITE_ENABLE_ANALYTICS
+          value: "false"
+        
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi

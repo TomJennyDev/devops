@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-server
+  labels:
+    app: flowise
+    component: server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flowise
+      component: server
+  template:
+    metadata:
+      labels:
+        app: flowise
+        component: server
+    spec:
+      containers:
+      - name: server
+        image: flowise-server:latest  # Will be replaced by Kustomize
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        
+        # ============================================
+        # ENVIRONMENT VARIABLES - BASE CONFIGURATION
+        # ============================================
+        env:
+        # Basic server configuration
+        - name: PORT
+          value: "3000"
+        
+        - name: FLOWISE_USERNAME
+          value: "admin"
+        
+        - name: FLOWISE_PASSWORD
+          value: "admin123"  # ⚠️ Override in overlays
+        
+        - name: FLOWISE_SECRETKEY_OVERWRITE
+          value: "change-me-in-production"  # ⚠️ Override in overlays
+        
+        # Database configuration (PostgreSQL)
+        - name: DATABASE_TYPE
+          value: "postgres"
+        
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: flowise-secrets
+              key: database-host
+              optional: true
+        
+        - name: DATABASE_PORT
+          value: "5432"
+        
+        - name: DATABASE_NAME
+          value: "flowise"
+        
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: flowise-secrets
+              key: database-user
+              optional: true
+        
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: flowise-secrets
+              key: database-password
+              optional: true
+        
+        # Storage configuration
+        - name: BLOB_STORAGE_PATH
+          value: "/root/.flowise/storage"
+        
+        - name: APIKEY_PATH
+          value: "/root/.flowise"
+        
+        - name: SECRETKEY_PATH
+          value: "/root/.flowise"
+        
+        - name: LOG_PATH
+          value: "/root/.flowise/logs"
+        
+        # CORS configuration
+        - name: CORS_ORIGINS
+          value: "*"  # ⚠️ Restrict in production
+        
+        # Execution mode
+        - name: EXECUTION_MODE
+          value: "main"
+        
+        # Debugging
+        - name: DEBUG
+          value: "false"
+        
+        - name: LOG_LEVEL
+          value: "info"
+        
+        # Tool configuration
+        - name: TOOL_FUNCTION_BUILTIN_DEP
+          value: "*"
+        
+        - name: TOOL_FUNCTION_EXTERNAL_DEP
+          value: "*"
+        
+        # Resource limits
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Volume mounts for persistent storage
+        volumeMounts:
+        - name: flowise-storage
+          mountPath: /root/.flowise
+      
+      volumes:
+      - name: flowise-storage
+        persistentVolumeClaim:
+          claimName: flowise-storage

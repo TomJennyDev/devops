@@ -1,0 +1,71 @@
+{
+  "aws_load_balancer_controller_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:iam::372836560690:role/my-eks-dev-aws-load-balancer-controller"
+  },
+  "cluster_endpoint": {
+    "sensitive": false,
+    "type": "string",
+    "value": "https://BF4C18058F438CD9909534B541FD16A8.gr7.ap-southeast-1.eks.amazonaws.com"
+  },
+  "cluster_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "my-eks-dev"
+  },
+  "cluster_security_group_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "sg-0ad94be5f71b74f40"
+  },
+  "configure_kubectl": {
+    "sensitive": false,
+    "type": "string",
+    "value": "aws eks update-kubeconfig --region ap-southeast-1 --name my-eks-dev"
+  },
+  "ecr_docker_login_command": {
+    "sensitive": false,
+    "type": "string",
+    "value": "aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com"
+  },
+  "ecr_flowise_server_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server"
+  },
+  "ecr_flowise_ui_url": {
+    "sensitive": false,
+    "type": "string",
+    "value": "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui"
+  },
+  "ecr_repository_urls": {
+    "sensitive": false,
+    "type": [
+      "object",
+      {
+        "flowise-server": "string",
+        "flowise-ui": "string"
+      }
+    ],
+    "value": {
+      "flowise-server": "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server",
+      "flowise-ui": "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui"
+    }
+  },
+  "external_dns_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": ""
+  },
+  "node_group_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "my-eks-dev:dev-workers"
+  },
+  "vpc_id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "vpc-0e6ca42c7851c46c4"
+  }
+}

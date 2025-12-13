@@ -1,0 +1,26 @@
+# ==================================================
+# EKS Cluster Information
+# Generated: Sat, Dec 13, 2025  1:27:18 PM
+# ==================================================
+cluster:
+  name: my-eks-dev
+  endpoint: https://BF4C18058F438CD9909534B541FD16A8.gr7.ap-southeast-1.eks.amazonaws.com
+  region: ap-southeast-1
+  accountId: 372836560690
+
+network:
+  vpcId: vpc-0e6ca42c7851c46c4
+
+compute:
+  nodeGroupId: my-eks-dev:dev-workers
+
+iam:
+  awsLoadBalancerControllerRoleArn: arn:aws:iam::372836560690:role/my-eks-dev-aws-load-balancer-controller
+  externalDnsRoleArn: 
+
+ecr:
+  flowiseServer: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
+  flowiseUi: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
+
+kubectl:
+  configCommand: aws eks update-kubeconfig --region ap-southeast-1 --name my-eks-dev

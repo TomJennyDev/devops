@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-info
+  namespace: argocd
+  labels:
+    app: argocd
+    managed-by: terraform
+data:
+  cluster.name: "my-eks-dev"
+  cluster.endpoint: "https://BF4C18058F438CD9909534B541FD16A8.gr7.ap-southeast-1.eks.amazonaws.com"
+  cluster.region: "ap-southeast-1"
+  aws.accountId: "372836560690"
+  vpc.id: "vpc-0e6ca42c7851c46c4"
+  nodeGroup.id: "my-eks-dev:dev-workers"
+  ecr.flowiseServer: "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server"
+  ecr.flowiseUi: "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui"

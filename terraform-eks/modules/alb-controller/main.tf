@@ -107,6 +107,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "elasticloadbalancing:DescribeLoadBalancers",           # List ALBs/NLBs
           "elasticloadbalancing:DescribeLoadBalancerAttributes",  # ALB settings
           "elasticloadbalancing:DescribeListeners",               # Listeners (port 80, 443)
+          "elasticloadbalancing:DescribeListenerAttributes",      # Listener settings
           "elasticloadbalancing:DescribeListenerCertificates",    # SSL certificates
           "elasticloadbalancing:DescribeSSLPolicies",             # SSL policies
           "elasticloadbalancing:DescribeRules",                   # Routing rules

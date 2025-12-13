@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flowise-storage
+  labels:
+    app: flowise
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: gp3  # AWS EBS gp3 (faster than gp2)
+  resources:
+    requests:
+      storage: 10Gi

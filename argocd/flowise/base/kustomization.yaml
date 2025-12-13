@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/name: flowise
+  app.kubernetes.io/part-of: flowise
+
+# Resources to include
+resources:
+  - deployment-server.yaml
+  - deployment-ui.yaml
+  - service-server.yaml
+  - service-ui.yaml
+  - pvc.yaml
+
+# Images (will be overridden in overlays)
+images:
+  - name: flowise-server
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
+    newTag: latest
+  - name: flowise-ui
+    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
+    newTag: latest

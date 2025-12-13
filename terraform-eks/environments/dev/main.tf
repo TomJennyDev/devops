@@ -53,3 +53,26 @@ module "eks" {
   wildcard_alb_dns_name               = var.wildcard_alb_dns_name
   wildcard_alb_zone_id                = var.wildcard_alb_zone_id
 }
+
+# ========================================
+# ECR REPOSITORIES (Independent Module)
+# ========================================
+# NOTE: ECR is independent - doesn't depend on EKS/VPC/IAM
+# Can be deployed before/after/separately from EKS cluster
+# Safe to destroy EKS without losing container images
+
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repositories    = var.ecr_repositories
+  encryption_type = var.ecr_encryption_type
+  force_delete    = var.ecr_force_delete
+  
+  common_tags = merge(
+    var.common_tags,
+    {
+      Component = "container-registry"
+    }
+  )
+}
+
