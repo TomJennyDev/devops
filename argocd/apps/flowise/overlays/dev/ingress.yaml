@@ -14,17 +14,10 @@ metadata:
     # 📝 BIẾN ĐỘNG: ALB group (để share ALB giữa nhiều Ingress)
     alb.ingress.kubernetes.io/group.name: flowise-dev
     
-    # SSL/TLS configuration - DISABLED for dev (HTTP only)
-    # 📝 BIẾN ĐỘNG: HTTPS Configuration
-    # ⚠️ ENABLE HTTPS CHO PRODUCTION:
-    # 1. Request ACM certificate: aws acm request-certificate --domain-name flowise.do2506.click
-    # 2. Validate domain ownership (DNS/Email)
-    # 3. Copy certificate ARN
-    # 4. Uncomment 3 dòng dưới và paste ARN
-    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    # alb.ingress.kubernetes.io/ssl-redirect: "443"
-    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/YOUR-CERT-ARN
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # SSL/TLS configuration
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
     
     # Health check
     alb.ingress.kubernetes.io/healthcheck-path: /
