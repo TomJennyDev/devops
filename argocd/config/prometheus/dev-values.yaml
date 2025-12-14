@@ -32,15 +32,14 @@ prometheus:
     retention: 15d  # Dev: 15 days retention (more history for analysis)
     retentionSize: "30GB"  # Increased for longer retention
     
-    # Resources - UPDATED for 2-node cluster
-    # Can handle more metrics and queries
+    # Resources - Reduced for 2-node cluster
     resources:
       requests:
-        cpu: 300m      # Increased for better performance
-        memory: 1Gi    # Increased for TSDB
+        cpu: 200m
+        memory: 512Mi
       limits:
-        cpu: 1000m     # Allow burst for heavy queries
-        memory: 2Gi    # Handle memory spikes
+        cpu: 500m
+        memory: 1Gi
     
     # Storage
     storageSpec:
@@ -49,7 +48,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 50Gi  # Increased for 15d retention
+              storage: 20Gi  # Reduced for dev
           storageClassName: gp2  # AWS EBS GP2
     
     # Scrape interval
@@ -62,7 +61,7 @@ prometheus:
     ruleSelectorNilUsesHelmValues: false
     
     # Replicas
-    replicas: 2  # HA: 2 replicas across nodes
+    replicas: 1  # Single replica for dev
     
     # Pod anti-affinity (spread across nodes)
     affinity:
@@ -87,15 +86,14 @@ grafana:
   # Admin credentials
   adminPassword: "admin123"  # CHANGE IN PRODUCTION!
   
-  # Resources - UPDATED for better UI performance
-  # Grafana can be heavy with many dashboards
+  # Resources - Reduced for dev
   resources:
     requests:
-      cpu: 200m      # Increased for dashboard rendering
-      memory: 512Mi  # More memory for caching
+      cpu: 100m
+      memory: 256Mi
     limits:
-      cpu: 500m      # Allow burst for dashboard loads
-      memory: 1Gi    # Handle multiple users
+      cpu: 300m
+      memory: 512Mi
   
   # Persistence
   persistence:
