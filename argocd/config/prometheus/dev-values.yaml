@@ -102,7 +102,7 @@ grafana:
     storageClassName: gp2
   
   # Replicas for HA
-  replicas: 2  # HA: 2 replicas across nodes
+  replicas: 1  # Single replica for dev to save resources
   
   # Pod anti-affinity (spread across nodes)
   affinity:
@@ -168,7 +168,7 @@ alertmanager:
               storage: 10Gi  # More space for alert history
           storageClassName: gp2
     
-    replicas: 2  # HA: 2 replicas across nodes
+    replicas: 1  # Single replica for dev to save resources
   
   # Alert configuration (placeholder)
   config:
