@@ -5,6 +5,10 @@ metadata:
   labels:
     app: flowise
     component: server
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /api/v1/ping
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
 spec:
   type: ClusterIP
   ports:
