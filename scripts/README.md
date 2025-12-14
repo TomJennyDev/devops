@@ -21,19 +21,23 @@ bash scripts/export-cluster-info.sh
 # 2. Deploy ArgoCD
 bash scripts/deploy-argocd.sh
 
-# 3. Update DNS records
+# 3. Wait for ALB to be provisioned (5-10 minutes)
+kubectl get ingress -n argocd -w
+
+# 4. Update DNS records (after ALB is ready)
 bash scripts/update-dns-records.sh
 
-# 4. Generate auth token
+# 5. Generate auth token (requires DNS to work)
 bash scripts/get-argocd-token.sh
+source ~/.argocd-credentials.env
 
-# 5. Deploy ArgoCD Projects (RBAC)
+# 6. Deploy ArgoCD Projects (RBAC)
 bash scripts/deploy-projects.sh
 
-# 6. Deploy Infrastructure Components
+# 7. Deploy Infrastructure Components (ALB Controller + Prometheus)
 bash scripts/deploy-infrastructure.sh dev
 
-# 7. Deploy Flowise Application
+# 8. Deploy Flowise Application
 bash scripts/deploy-flowise.sh dev
 ```
 
@@ -278,19 +282,23 @@ bash export-cluster-info.sh
 # 3. Deploy ArgoCD
 bash deploy-argocd.sh
 
-# 4. Configure DNS
+# 4. Wait for ALB (5-10 minutes)
+kubectl get ingress -n argocd -w
+
+# 5. Configure DNS
 bash update-dns-records.sh
 
-# 5. Get auth token
+# 6. Get auth token
 bash get-argocd-token.sh
+source ~/.argocd-credentials.env
 
-# 6. Deploy Projects (RBAC)
+# 7. Deploy Projects (RBAC)
 bash deploy-projects.sh
 
-# 7. Deploy Infrastructure
+# 8. Deploy Infrastructure
 bash deploy-infrastructure.sh dev
 
-# 8. Deploy Flowise
+# 9. Deploy Flowise
 bash deploy-flowise.sh dev
 ```
 
