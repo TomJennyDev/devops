@@ -1,9 +1,19 @@
 #!/bin/bash
 # ========================================
-# DEPLOY AWS LOAD BALANCER CONTROLLER
+# DEPLOY AWS LOAD BALANCER CONTROLLER VIA ARGOCD
 # ========================================
-# This script deploys AWS Load Balancer Controller using Kustomize
-# Prerequisites: ArgoCD must be installed first
+# This script deploys ALB Controller via ArgoCD GitOps (Kustomize)
+# 
+# ⚠️  USE CASE: Deploy/manage ALB Controller AFTER ArgoCD is running
+# ⚠️  NOT FOR: Initial ALB Controller deployment (before ArgoCD)
+# 
+# For initial deployment (before ArgoCD):
+#   - Use Helm: helm install aws-load-balancer-controller...
+#   - Or Terraform: terraform apply -target=module.alb_controller
+# 
+# Prerequisites: 
+#   - ArgoCD must be running
+#   - ArgoCD Projects deployed
 # ========================================
 set -e
 
@@ -69,10 +79,23 @@ echo -e "${GREEN}✅ Cluster access verified ($NODE_COUNT nodes ready)${NC}"
 # Check ArgoCD is running
 if ! kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-server --no-headers 2>/dev/null | grep -q "Running"; then
     echo -e "${RED}❌ ArgoCD is not running in the cluster.${NC}"
-    echo -e "${YELLOW}Please deploy ArgoCD first: ./deploy-argocd.sh${NC}"
+    echo -e "${YELLOW}Please deploy ArgoCD first: bash scripts/deploy-argocd.sh${NC}"
     exit 1
 fi
 echo -e "${GREEN}✅ ArgoCD is running${NC}"
+
+# Check if ArgoCD Projects are deployed
+if ! kubectl get appproject -n argocd infrastructure &> /dev/null; then
+    echo -e "${YELLOW}⚠️  ArgoCD Project 'infrastructure' not found${NC}"
+    echo -e "${YELLOW}Deploy Projects first: bash scripts/deploy-projects.sh${NC}"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✅ ArgoCD Project 'infrastructure' exists${NC}"
+fi
 
 # Check values file exists
 if [ ! -f "$ALB_CONTROLLER_DEV/values.yaml" ]; then
@@ -276,12 +299,17 @@ echo ""
 echo "3️⃣  ${YELLOW}Check Controller Logs:${NC}"
 echo "   kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=50 -f"
 echo ""
-echo "4️⃣  ${YELLOW}Verify Controller is working:${NC}"
-echo "   # Deploy an Ingress resource and check if ALB is created"
-echo "   kubectl apply -f argocd/apps/flowise/overlays/dev/ingress.yaml"
-echo "   kubectl get ingress -A"
+echo "4️⃣  ${YELLOW}Continue with other infrastructure:${NC}"
+echo "   bash scripts/deploy-infrastructure.sh dev  # Deploy Prometheus"
 echo ""
-echo "5️⃣  ${YELLOW}Access ArgoCD UI to monitor:${NC}"
+echo "5️⃣  ${YELLOW}Deploy applications:${NC}"
+echo "   bash scripts/deploy-flowise.sh dev"
+echo ""
+echo "6️⃣  ${YELLOW}Verify ALB creation:${NC}"
+echo "   kubectl get ingress -n flowise-dev"
+echo "   # Should show ALB DNS in ADDRESS column"
+echo ""
+echo "7️⃣  ${YELLOW}Access ArgoCD UI to monitor:${NC}"
 echo "   https://argocd.do2506.click"
 echo ""
 echo -e "${BLUE}========================================${NC}"

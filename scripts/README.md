@@ -22,11 +22,13 @@ Utility scripts for EKS cluster management and ArgoCD deployment with enterprise
 bash scripts/export-cluster-info.sh
 
 # 2. Deploy AWS Load Balancer Controller (REQUIRED for ArgoCD Ingress)
+#    See "AWS Load Balancer Controller Deployment" section below for details
+#    
 #    Option A: Via Terraform (recommended)
 cd terraform-eks/environments/dev
 terraform apply  # If ALB module is enabled
 
-#    Option B: Via Helm manually
+#    Option B: Via Helm manually (see section below for full command)
 helm repo add eks https://aws.github.io/eks-charts
 helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -n kube-system \
@@ -58,6 +60,57 @@ bash deploy-infrastructure.sh dev
 # 9. Deploy Flowise Application
 bash deploy-flowise.sh dev
 ```
+
+---
+
+## 🔧 AWS Load Balancer Controller Deployment
+
+There are **2 ways** to deploy ALB Controller depending on timing:
+
+### Method 1: Initial Deployment (BEFORE ArgoCD) ⭐ Recommended
+
+**Use when:** Setting up infrastructure for the first time
+
+**Option A: Via Helm (Manual)**
+```bash
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=my-eks-dev \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --set region=ap-southeast-1 \
+  --set vpcId=vpc-xxxxx
+```
+
+**Option B: Via Terraform**
+```bash
+cd terraform-eks/environments/dev
+terraform apply -target=module.alb_controller
+```
+
+**Why:** ArgoCD Ingress needs ALB Controller to create the Application Load Balancer.
+
+---
+
+### Method 2: GitOps Management (AFTER ArgoCD) 
+
+**Use when:** Managing ALB Controller via ArgoCD after initial setup
+
+**Via dedicated script:**
+```bash
+bash scripts/deploy-alb-controller.sh
+```
+
+**Via Infrastructure App-of-Apps:**
+```bash
+bash scripts/deploy-infrastructure.sh dev
+# Deploys: ALB Controller + Prometheus together
+```
+
+**Why:** Manage infrastructure as code through GitOps workflow.
 
 ---
 
@@ -242,12 +295,25 @@ bash scripts/remove-argocd.sh
 
 ### 9. `deploy-alb-controller.sh`
 
-Deploy AWS Load Balancer Controller using Kustomize (legacy, use `deploy-infrastructure.sh` instead).
+Deploy AWS Load Balancer Controller via ArgoCD GitOps.
+
+**⚠️  Use Case:** Deploy/manage ALB Controller AFTER ArgoCD is running (GitOps management)
+
+**NOT for:** Initial ALB deployment before ArgoCD (use Helm/Terraform instead)
+
+**Prerequisites:**
+- ArgoCD must be running
+- ArgoCD Projects deployed
 
 **Usage:**
 ```bash
 bash scripts/deploy-alb-controller.sh
 ```
+
+**When to use:**
+- Managing ALB Controller via GitOps after initial setup
+- Updating ALB Controller configuration through ArgoCD
+- Alternative to `deploy-infrastructure.sh` (which deploys ALB + Prometheus together)
 
 ---
 
