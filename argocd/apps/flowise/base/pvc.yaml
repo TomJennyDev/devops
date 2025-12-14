@@ -7,7 +7,7 @@ metadata:
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: gp3  # AWS EBS gp3 (faster than gp2)
+  storageClassName: gp2  # AWS EBS gp2
   resources:
     requests:
       storage: 10Gi
