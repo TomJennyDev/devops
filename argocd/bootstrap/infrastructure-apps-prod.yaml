@@ -1,0 +1,53 @@
+# ============================================
+# INFRASTRUCTURE APP-OF-APPS - PRODUCTION ENVIRONMENT
+# ============================================
+# Pattern: App of Apps (ArgoCD best practice)
+# Official Docs: https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+# Reference: https://github.com/argoproj/argocd-example-apps/tree/master/apps
+#
+# Specification:
+#   API: argoproj.io/v1alpha1
+#   Kind: Application (ArgoCD CRD)
+#   Source: https://github.com/argoproj/argo-cd/blob/master/manifests/crds/application-crd.yaml
+#
+# This App-of-Apps deploys all infrastructure components
+# Note: Manual sync for production (safety first)
+# ============================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infrastructure-apps-prod
+  namespace: argocd
+  labels:
+    environment: prod
+    type: infrastructure
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infrastructure
+  
+  sources:
+    # AWS Load Balancer Controller
+    - repoURL: https://github.com/TomJennyDev/devops.git
+      targetRevision: main
+      path: argocd/infrastructure/aws-load-balancer-controller/overlays/production
+    
+    # Prometheus + Grafana Stack
+    - repoURL: https://github.com/TomJennyDev/devops.git
+      targetRevision: main
+      path: argocd/infrastructure/prometheus/overlays/prod
+  
+  destination:
+    server: https://kubernetes.default.svc
+  
+  syncPolicy:
+    # Manual sync for production
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

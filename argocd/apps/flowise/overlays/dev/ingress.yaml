@@ -1,0 +1,66 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flowise-ingress
+  annotations:
+    # AWS Load Balancer Controller annotations
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    # 📝 BIẾN ĐỘNG: ALB name
+    # Hiện tại: flowise-dev-alb
+    # Staging: flowise-staging-alb
+    # Production: flowise-prod-alb
+    alb.ingress.kubernetes.io/load-balancer-name: flowise-dev-alb
+    # 📝 BIẾN ĐỘNG: ALB group (để share ALB giữa nhiều Ingress)
+    alb.ingress.kubernetes.io/group.name: flowise-dev
+    
+    # SSL/TLS configuration - DISABLED for dev (HTTP only)
+    # 📝 BIẾN ĐỘNG: HTTPS Configuration
+    # ⚠️ ENABLE HTTPS CHO PRODUCTION:
+    # 1. Request ACM certificate: aws acm request-certificate --domain-name flowise.do2506.click
+    # 2. Validate domain ownership (DNS/Email)
+    # 3. Copy certificate ARN
+    # 4. Uncomment 3 dòng dưới và paste ARN
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/YOUR-CERT-ARN
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    
+    # Health check
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+    
+    # Tags
+    alb.ingress.kubernetes.io/tags: Environment=dev,Application=flowise
+spec:
+  ingressClassName: alb
+  rules:
+  # 📝 BIẾN ĐỘNG: Domain name
+  # Hiện tại: flowise-dev.do2506.click
+  # ⚠️ QUAN TRỌNG: Phải tạo DNS record trong Route53
+  # Command: aws route53 change-resource-record-sets (xem script update-dns-records.sh)
+  # Staging: flowise-staging.do2506.click
+  # Production: flowise.do2506.click hoặc flowise-prod.do2506.click
+  - host: flowise-dev.do2506.click
+    http:
+      paths:
+      # UI routes
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: flowise-ui
+            port:
+              number: 8080
+      
+      # API routes (proxy to backend)
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: flowise-server
+            port:
+              number: 3000

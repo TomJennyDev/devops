@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Business applications (Flowise, web apps, microservices, etc.)
+  
+  # Source repositories
+  sourceRepos:
+    - 'https://github.com/TomJennyDev/devops.git'
+    - '*'  # Allow any Helm chart repository
+  
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: 'flowise-*'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'app-*'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'default'
+      server: 'https://kubernetes.default.svc'
+  
+  # Allowed cluster resources (more restrictive than infrastructure)
+  clusterResourceWhitelist:
+    - group: ''
+      kind: 'Namespace'
+  
+  # Namespace resources allowed
+  namespaceResourceWhitelist:
+    - group: 'apps'
+      kind: 'Deployment'
+    - group: 'apps'
+      kind: 'StatefulSet'
+    - group: ''
+      kind: 'Service'
+    - group: ''
+      kind: 'ConfigMap'
+    - group: ''
+      kind: 'Secret'
+    - group: ''
+      kind: 'PersistentVolumeClaim'
+    - group: 'networking.k8s.io'
+      kind: 'Ingress'
+    - group: 'autoscaling'
+      kind: 'HorizontalPodAutoscaler'
+  
+  # Roles for RBAC
+  roles:
+    - name: app-admin
+      description: Admin access to applications
+      policies:
+        - p, proj:applications:app-admin, applications, *, applications/*, allow
+      groups:
+        - app-team
+        - devops-team
+    
+    - name: app-developer
+      description: Developer access (deploy, sync, refresh)
+      policies:
+        - p, proj:applications:app-developer, applications, get, applications/*, allow
+        - p, proj:applications:app-developer, applications, sync, applications/*, allow
+      groups:
+        - developers
+    
+    - name: app-readonly
+      description: Read-only access
+      policies:
+        - p, proj:applications:app-developer, applications, get, applications/*, allow
+      groups:
+        - qa-team
+        - support-team

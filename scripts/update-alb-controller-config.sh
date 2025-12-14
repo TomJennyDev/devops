@@ -13,7 +13,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV="${1:-dev}"  # Default to dev if not specified
 TERRAFORM_DIR="$SCRIPT_DIR/../terraform-eks/environments/$ENV"
-VALUES_FILE="$SCRIPT_DIR/../argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/$ENV/values.yaml"
+VALUES_FILE="$SCRIPT_DIR/../argocd/infrastructure/aws-load-balancer-controller/overlays/$ENV/values.yaml"
 
 # Colors
 GREEN='\033[0;32m'
@@ -110,7 +110,7 @@ echo -e "${GREEN}✅ Updated $VALUES_FILE${NC}"
 # ==================================================
 echo -e "${YELLOW}📝 Updating deployment-patch.yaml...${NC}"
 
-DEPLOYMENT_PATCH="$SCRIPT_DIR/../argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/$ENV/deployment-patch.yaml"
+DEPLOYMENT_PATCH="$SCRIPT_DIR/../argocd/infrastructure/aws-load-balancer-controller/overlays/$ENV/deployment-patch.yaml"
 
 if [ -f "$DEPLOYMENT_PATCH" ]; then
   cp "$DEPLOYMENT_PATCH" "$DEPLOYMENT_PATCH.bak"
@@ -127,7 +127,7 @@ fi
 # ==================================================
 echo -e "${YELLOW}📝 Updating serviceaccount-patch.yaml...${NC}"
 
-SA_PATCH="$SCRIPT_DIR/../argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/$ENV/serviceaccount-patch.yaml"
+SA_PATCH="$SCRIPT_DIR/../argocd/infrastructure/aws-load-balancer-controller/overlays/$ENV/serviceaccount-patch.yaml"
 
 if [ -f "$SA_PATCH" ]; then
   cp "$SA_PATCH" "$SA_PATCH.bak"
@@ -155,6 +155,6 @@ echo ""
 echo -e "${YELLOW}🚀 Next steps:${NC}"
 echo "  1. Review changes: git diff"
 echo "  2. Commit changes: git add . && git commit -m 'Update ALB Controller config for $ENV from Terraform'"
-echo "  3. Deploy ALB Controller: kubectl apply -k argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/$ENV/"
+echo "  3. Deploy ALB Controller: kubectl apply -k argocd/infrastructure/aws-load-balancer-controller/overlays/$ENV/"
 echo ""
 echo -e "${GREEN}✅ Done!${NC}"

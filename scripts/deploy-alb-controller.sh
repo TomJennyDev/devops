@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CLUSTER_INFO_DIR="$PROJECT_ROOT/environments/dev/cluster-info"
-ALB_CONTROLLER_BASE="$PROJECT_ROOT/argocd/system-apps-kustomize/aws-load-balancer-controller"
+ALB_CONTROLLER_BASE="$PROJECT_ROOT/argocd/infrastructure/aws-load-balancer-controller"
 ALB_CONTROLLER_DEV="$ALB_CONTROLLER_BASE/overlays/dev"
 
 # Load cluster info from exported environment variables
@@ -278,7 +278,7 @@ echo "   kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer
 echo ""
 echo "4️⃣  ${YELLOW}Verify Controller is working:${NC}"
 echo "   # Deploy an Ingress resource and check if ALB is created"
-echo "   kubectl apply -f argocd/flowise/overlays/dev/ingress.yaml"
+echo "   kubectl apply -f argocd/apps/flowise/overlays/dev/ingress.yaml"
 echo "   kubectl get ingress -A"
 echo ""
 echo "5️⃣  ${YELLOW}Access ArgoCD UI to monitor:${NC}"
