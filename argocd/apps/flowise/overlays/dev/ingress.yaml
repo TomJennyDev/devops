@@ -54,7 +54,7 @@ spec:
           service:
             name: flowise-ui
             port:
-              number: 8080
+              number: 80
       
       # API routes (proxy to backend)
       - path: /api
