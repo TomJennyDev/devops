@@ -31,6 +31,18 @@ variable "kube_proxy_version" {
   default     = "v1.31.0-eksbuild.2"
 }
 
+variable "ebs_csi_driver_version" {
+  description = "Version of EBS CSI driver addon"
+  type        = string
+  default     = "v1.37.0-eksbuild.1"
+}
+
+variable "ebs_csi_driver_role_arn" {
+  description = "IAM role ARN for EBS CSI driver service account"
+  type        = string
+  default     = ""
+}
+
 variable "common_tags" {
   description = "Common tags for all resources"
   type        = map(string)

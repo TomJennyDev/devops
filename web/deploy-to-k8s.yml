@@ -10,8 +10,6 @@ on:
                 default: 'dev'
                 options:
                     - dev
-                    - staging
-                    - production
             tag_version:
                 description: 'Tag version (optional, auto-generated if empty)'
                 type: string
@@ -64,13 +62,13 @@ jobs:
                           TAG="${SHORT_SHA}"
                       fi
                   else
-                      # Auto-trigger from main branch
+                      # Auto-trigger from main branch - deploy to DEV only
                       TAG="${SHORT_SHA}"
-                      ENV="production"
+                      ENV="dev"
                       NODE_VERSION="20"
                   fi
 
-                  OVERLAY_PATH="overlays/${ENV}"
+                  OVERLAY_PATH="argocd/apps/flowise/overlays/${ENV}"
 
                   echo "tag=${TAG}" >> $GITHUB_OUTPUT
                   echo "env=${ENV}" >> $GITHUB_OUTPUT
@@ -106,7 +104,6 @@ jobs:
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                  role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   aws-region: ${{ env.AWS_REGION }}
@@ -269,25 +266,27 @@ jobs:
             - name: Trigger ArgoCD sync and wait
               env:
                   ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-                  ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+                  ARGOCD_USERNAME: admin
+                  ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
                   ENV: ${{ needs.set-env.outputs.env }}
               run: |
-                  # Login to ArgoCD
+                  APP_NAME="flowise-${ENV}"
+
                   echo "🔐 Logging in to ArgoCD..."
                   argocd login ${ARGOCD_SERVER} \
-                      --auth-token ${ARGOCD_AUTH_TOKEN} \
+                      --username ${ARGOCD_USERNAME} \
+                      --password ${ARGOCD_PASSWORD} \
                       --grpc-web \
                       --insecure
-
-                  APP_NAME="flowise-${ENV}"
 
                   echo "🔄 Triggering ArgoCD sync for: ${APP_NAME}"
 
                   # Refresh app to detect changes
-                  argocd app get ${APP_NAME} --refresh > /dev/null
+                  argocd app get ${APP_NAME} --refresh --grpc-web > /dev/null || true
 
                   # Trigger sync
                   argocd app sync ${APP_NAME} \
+                      --grpc-web \
                       --prune \
                       --force
 
@@ -296,6 +295,7 @@ jobs:
 
                   # Wait for healthy status
                   argocd app wait ${APP_NAME} \
+                      --grpc-web \
                       --health \
                       --timeout 600
 
@@ -307,19 +307,27 @@ jobs:
               if: always()
               env:
                   ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-                  ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+                  ARGOCD_USERNAME: admin
+                  ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
                   ENV: ${{ needs.set-env.outputs.env }}
               run: |
                   APP_NAME="flowise-${ENV}"
+                  
+                  # Re-login in case of session timeout
+                  argocd login ${ARGOCD_SERVER} \
+                      --username ${ARGOCD_USERNAME} \
+                      --password ${ARGOCD_PASSWORD} \
+                      --grpc-web \
+                      --insecure > /dev/null 2>&1 || true
 
                   echo "📊 Deployment Summary:"
                   echo "═══════════════════════════════════════"
-                  argocd app get ${APP_NAME}
+                  argocd app get ${APP_NAME} --grpc-web || echo "Failed to get app status"
 
                   echo ""
                   echo "📝 Resource Status:"
                   echo "═══════════════════════════════════════"
-                  argocd app resources ${APP_NAME}
+                  argocd app resources ${APP_NAME} --grpc-web || echo "Failed to get resources"
 
     # ============================================
     # Job 5: Post-deployment Health Check

@@ -74,3 +74,23 @@ resource "aws_eks_addon" "kube_proxy" {
     ignore_changes = [modified_at]
   }
 }
+
+# ============================================
+# EBS CSI Driver Addon
+# ============================================
+resource "aws_eks_addon" "ebs_csi_driver" {
+  count = var.enable_cluster_addons ? 1 : 0
+
+  cluster_name             = var.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  addon_version            = var.ebs_csi_driver_version
+  resolve_conflicts_on_update = "PRESERVE"
+  
+  service_account_role_arn = var.ebs_csi_driver_role_arn
+
+  tags = var.common_tags
+  
+  lifecycle {
+    ignore_changes = [modified_at]
+  }
+}

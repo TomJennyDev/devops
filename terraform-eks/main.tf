@@ -105,31 +105,62 @@ module "node_groups" {
 }
 
 # ========================================
-# COREDNS ADDON (CRITICAL: Must be after node groups)
+# EKS ADDONS MODULE
 # ========================================
-# CoreDNS addon is created here (not in eks module) to ensure proper dependency:
-# EKS Cluster -> VPC CNI -> Node Groups -> CoreDNS
-# CoreDNS pods need nodes to schedule on, so we must wait for node_groups module
-resource "aws_eks_addon" "coredns" {
-  count = var.enable_cluster_addons ? 1 : 0
+module "eks_addons" {
+  source = "./modules/eks-addons"
 
-  cluster_name                = var.cluster_name
-  addon_name                  = "coredns"
-  addon_version               = var.coredns_version
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "PRESERVE"
+  cluster_name              = var.cluster_name
+  enable_cluster_addons     = var.enable_cluster_addons
+  vpc_cni_version           = var.vpc_cni_version
+  coredns_version           = var.coredns_version
+  kube_proxy_version        = var.kube_proxy_version
+  ebs_csi_driver_version    = var.ebs_csi_driver_version
+  ebs_csi_driver_role_arn   = aws_iam_role.ebs_csi_driver.arn
+  common_tags               = var.common_tags
+
+  depends_on = [module.eks, module.node_groups, aws_iam_role.ebs_csi_driver]
+}
+
+# ========================================
+# EBS CSI DRIVER IAM ROLE (IRSA)
+# ========================================
+data "aws_iam_policy_document" "ebs_csi_driver_assume_role" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_provider_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_provider_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ebs_csi_driver" {
+  name               = "${var.cluster_name}-ebs-csi-driver-role"
+  assume_role_policy = data.aws_iam_policy_document.ebs_csi_driver_assume_role.json
 
   tags = var.common_tags
+  
+  depends_on = [module.eks]
+}
 
-  # CRITICAL dependency chain:
-  # 1. EKS cluster must exist
-  # 2. VPC CNI addon must be ready (for pod networking)
-  # 3. Node groups must be created and nodes ready
-  # 4. Then CoreDNS can schedule its pods
-  depends_on = [
-    module.eks,
-    module.node_groups
-  ]
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.ebs_csi_driver.name
 }
 
 # ========================================
