@@ -1,10 +1,10 @@
 # ==================================================
 # EKS Cluster Information
-# Generated: Sat, Dec 13, 2025  1:27:18 PM
+# Generated: Sun, Dec 14, 2025 10:08:54 AM
 # ==================================================
 cluster:
   name: my-eks-dev
-  endpoint: https://BF4C18058F438CD9909534B541FD16A8.gr7.ap-southeast-1.eks.amazonaws.com
+  endpoint: https://43BDCB1EB1BB47FDA86A2F456BB0712D.gr7.ap-southeast-1.eks.amazonaws.com
   region: ap-southeast-1
   accountId: 372836560690
 

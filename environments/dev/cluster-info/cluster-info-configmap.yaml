@@ -8,7 +8,7 @@ metadata:
     managed-by: terraform
 data:
   cluster.name: "my-eks-dev"
-  cluster.endpoint: "https://BF4C18058F438CD9909534B541FD16A8.gr7.ap-southeast-1.eks.amazonaws.com"
+  cluster.endpoint: "https://43BDCB1EB1BB47FDA86A2F456BB0712D.gr7.ap-southeast-1.eks.amazonaws.com"
   cluster.region: "ap-southeast-1"
   aws.accountId: "372836560690"
   vpc.id: "vpc-0e6ca42c7851c46c4"
