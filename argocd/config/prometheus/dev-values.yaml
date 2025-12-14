@@ -278,9 +278,17 @@ defaultRules:
 # ========================================
 # ADDITIONAL SCRAPE CONFIGS
 # ========================================
-# Add custom scrape configs if needed
-# prometheus:
-#   additionalScrapeConfigs:
-#     - job_name: 'my-app'
-#       static_configs:
-#         - targets: ['my-app.default.svc.cluster.local:8080']
+# Add custom scrape configs for Flowise
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: 'flowise-server'
+        scrape_interval: 30s
+        metrics_path: /api/v1/metrics
+        scheme: http
+        static_configs:
+          - targets: ['flowise-server.flowise-dev.svc.cluster.local:3000']
+            labels:
+              app: 'flowise'
+              component: 'server'
+              environment: 'dev'
