@@ -17,10 +17,10 @@ patchesStrategicMerge:
 images:
 - name: flowise-server
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
-  newTag: 5ecc647
+  newTag: a7a68e2
 - name: flowise-ui
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
-  newTag: 5ecc647
+  newTag: a7a68e2
 
 configMapGenerator:
 - literals:
