@@ -72,6 +72,46 @@ fi
 NODE_COUNT=$(kubectl get nodes --no-headers | wc -l)
 echo -e "${GREEN}✅ Cluster access verified ($NODE_COUNT nodes ready)${NC}"
 
+# Check AWS Load Balancer Controller (REQUIRED for ArgoCD Ingress)
+echo ""
+echo -e "${YELLOW}⚠️  Checking AWS Load Balancer Controller...${NC}"
+if kubectl get deployment -n kube-system aws-load-balancer-controller &> /dev/null; then
+    ALB_REPLICAS=$(kubectl get deployment -n kube-system aws-load-balancer-controller -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+    if [ "$ALB_REPLICAS" -gt 0 ]; then
+        echo -e "${GREEN}✅ ALB Controller is running ($ALB_REPLICAS replicas)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  ALB Controller exists but pods not ready${NC}"
+        kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+    fi
+else
+    echo -e "${RED}❌ AWS Load Balancer Controller NOT FOUND!${NC}"
+    echo ""
+    echo -e "${YELLOW}ArgoCD Ingress requires ALB Controller to create the Application Load Balancer.${NC}"
+    echo -e "${YELLOW}Without it, ArgoCD will deploy but won't be accessible via ALB.${NC}"
+    echo ""
+    echo -e "${YELLOW}To deploy ALB Controller first:${NC}"
+    echo "  1. Via Terraform (recommended):"
+    echo "     cd terraform-eks/environments/dev"
+    echo "     terraform apply  # If ALB module is enabled"
+    echo ""
+    echo "  2. Via Helm manually:"
+    echo "     helm repo add eks https://aws.github.io/eks-charts"
+    echo "     helm install aws-load-balancer-controller eks/aws-load-balancer-controller \\"
+    echo "       -n kube-system \\"
+    echo "       --set clusterName=$CLUSTER_NAME"
+    echo ""
+    echo "  3. Via GitOps (after ArgoCD is deployed):"
+    echo "     bash scripts/deploy-infrastructure.sh dev"
+    echo ""
+    read -p "Continue without ALB Controller? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Exiting. Please deploy ALB Controller first.${NC}"
+        exit 1
+    fi
+    echo -e "${YELLOW}⚠️  Continuing without ALB Controller. Ingress will not create ALB.${NC}"
+fi
+
 # Check ArgoCD values file
 if [ ! -f "$ARGOCD_VALUES" ]; then
     echo -e "${RED}❌ ArgoCD values file not found: $ARGOCD_VALUES${NC}"
@@ -294,6 +334,7 @@ echo ""
 echo -e "${GREEN}✅ Deployment complete!${NC}"
 echo ""
 echo -e "${YELLOW}⚠️  Important Notes:${NC}"
+echo "• ALB Controller should be deployed BEFORE ArgoCD for Ingress to work"
 echo "• ArgoCD is configured with server.insecure=true for ALB"
 echo "• Password source: $PASSWORD_SOURCE"
 echo "• Ingress uses ALB with HTTPS (certificate from ACM)"
@@ -301,6 +342,7 @@ echo "• cert-manager is required and should be running"
 echo "• Deploy Projects first before deploying applications"
 echo ""
 echo -e "${YELLOW}📚 Documentation:${NC}"
+echo "• Prerequisites: argocd/docs/ARGOCD-INSTALLATION.md (section Yêu Cầu)"
 echo "• Architecture: argocd/docs/ARCHITECTURE.md"
 echo "• Getting Started: argocd/docs/GETTING-STARTED.md"
 echo "• Configuration: argocd/apps/flowise/CONFIGURATION-CHECKLIST.md"

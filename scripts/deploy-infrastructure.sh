@@ -3,6 +3,10 @@
 # DEPLOY INFRASTRUCTURE COMPONENTS
 # ========================================
 # Deploy Infrastructure App-of-Apps (ALB Controller + Prometheus)
+# 
+# NOTE: This deploys ALB Controller via ArgoCD GitOps.
+# If you need ALB Controller BEFORE ArgoCD (for ArgoCD Ingress),
+# deploy it via Helm or Terraform first.
 # ========================================
 set -e
 

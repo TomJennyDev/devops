@@ -8,7 +8,10 @@ Utility scripts for EKS cluster management and ArgoCD deployment with enterprise
 - kubectl installed
 - Helm 3 installed
 - Terraform (for cluster deployment)
+- **AWS Load Balancer Controller** (required before ArgoCD)
 - ArgoCD CLI (optional, for advanced operations)
+
+**⚠️  Important:** ALB Controller must be deployed BEFORE ArgoCD if you want to use ALB Ingress.
 
 ## 🚀 Quick Start
 
@@ -18,27 +21,42 @@ Utility scripts for EKS cluster management and ArgoCD deployment with enterprise
 # 1. Export cluster information
 bash scripts/export-cluster-info.sh
 
-# 2. Deploy ArgoCD
-bash scripts/deploy-argocd.sh
+# 2. Deploy AWS Load Balancer Controller (REQUIRED for ArgoCD Ingress)
+#    Option A: Via Terraform (recommended)
+cd terraform-eks/environments/dev
+terraform apply  # If ALB module is enabled
 
-# 3. Wait for ALB to be provisioned (5-10 minutes)
+#    Option B: Via Helm manually
+helm repo add eks https://aws.github.io/eks-charts
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=my-eks-dev \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
+
+cd ../../scripts
+
+# 3. Deploy ArgoCD (will create ALB automatically via Ingress)
+bash deploy-argocd.sh
+
+# 4. Wait for ALB to be provisioned (5-10 minutes)
 kubectl get ingress -n argocd -w
 
-# 4. Update DNS records (after ALB is ready)
-bash scripts/update-dns-records.sh
+# 5. Update DNS records (after ALB is ready)
+bash update-dns-records.sh
 
-# 5. Generate auth token (requires DNS to work)
-bash scripts/get-argocd-token.sh
+# 6. Generate auth token (requires DNS to work)
+bash get-argocd-token.sh
 source ~/.argocd-credentials.env
 
-# 6. Deploy ArgoCD Projects (RBAC)
-bash scripts/deploy-projects.sh
+# 7. Deploy ArgoCD Projects (RBAC)
+bash deploy-projects.sh
 
-# 7. Deploy Infrastructure Components (ALB Controller + Prometheus)
-bash scripts/deploy-infrastructure.sh dev
+# 8. Deploy Infrastructure Components (Prometheus only - ALB already deployed)
+bash deploy-infrastructure.sh dev
 
-# 8. Deploy Flowise Application
-bash scripts/deploy-flowise.sh dev
+# 9. Deploy Flowise Application
+bash deploy-flowise.sh dev
 ```
 
 ---
@@ -271,34 +289,49 @@ scripts/
 ### Initial Deployment
 
 ```bash
-# 1. Deploy infrastructure
+# 1. Deploy infrastructure with Terraform
 cd terraform-eks/environments/dev
-terraform apply
+terraform apply  # This should include ALB Controller IAM role
 
 # 2. Export cluster info
 cd ../../scripts
 bash export-cluster-info.sh
 
-# 3. Deploy ArgoCD
+# 3. Deploy ALB Controller (REQUIRED before ArgoCD)
+#    Option A: Via Helm
+helm repo add eks https://aws.github.io/eks-charts
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=my-eks-dev \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
+
+#    Option B: Via Terraform (if module enabled)
+cd ../../terraform-eks/environments/dev
+terraform apply -target=module.alb_controller
+
+cd ../../scripts
+
+# 4. Deploy ArgoCD
 bash deploy-argocd.sh
 
-# 4. Wait for ALB (5-10 minutes)
+# 5. Wait for ALB (5-10 minutes)
 kubectl get ingress -n argocd -w
 
-# 5. Configure DNS
+# 6. Configure DNS
 bash update-dns-records.sh
 
-# 6. Get auth token
+# 7. Get auth token
 bash get-argocd-token.sh
 source ~/.argocd-credentials.env
 
-# 7. Deploy Projects (RBAC)
+# 8. Deploy Projects (RBAC)
 bash deploy-projects.sh
 
-# 8. Deploy Infrastructure
+# 9. Deploy Prometheus (ALB Controller already deployed)
 bash deploy-infrastructure.sh dev
 
-# 9. Deploy Flowise
+# 10. Deploy Flowise
 bash deploy-flowise.sh dev
 ```
 
