@@ -32,6 +32,16 @@ spec:
         - name: CORS_ORIGINS
           value: "*"  # Allow all origins in dev
         
+        # Prometheus Metrics Configuration
+        - name: ENABLE_METRICS
+          value: "true"
+        
+        - name: METRICS_PROVIDER
+          value: "prometheus"
+        
+        - name: METRICS_INCLUDE_NODE_METRICS
+          value: "true"
+        
         # Add dev-specific env from ConfigMap
         - name: ENVIRONMENT
           valueFrom:

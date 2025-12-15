@@ -13,6 +13,7 @@ resources:
   - service-server.yaml
   - service-ui.yaml
   - pvc.yaml
+  - servicemonitor.yaml
 
 # Images (will be overridden in overlays)
 images:
