@@ -113,7 +113,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "irate(process_cpu_user_seconds_total{instance=~\"$instance\"}[2m]) * 100",
+          "expr": "irate(flowise_process_cpu_user_seconds_total{instance=~\"$instance\"}[2m]) * 100",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "User CPU - {{instance}}",
@@ -124,7 +124,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "irate(process_cpu_system_seconds_total{instance=~\"$instance\"}[2m]) * 100",
+          "expr": "irate(flowise_process_cpu_system_seconds_total{instance=~\"$instance\"}[2m]) * 100",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Sys CPU - {{instance}}",
@@ -224,7 +224,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_eventloop_lag_seconds{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_eventloop_lag_seconds{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
@@ -303,7 +303,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(nodejs_version_info{instance=~\"$instance\"}) by (version)",
+          "expr": "sum(flowise_nodejs_version_info{instance=~\"$instance\"}) by (version)",
           "refId": "A"
         }
       ],
@@ -381,7 +381,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(changes(process_start_time_seconds{instance=~\"$instance\"}[1m]))",
+          "expr": "sum(changes(flowise_process_start_time_seconds{instance=~\"$instance\"}[1m]))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
@@ -481,7 +481,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "process_resident_memory_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_process_resident_memory_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Process Memory - {{instance}}",
@@ -492,7 +492,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_heap_size_total_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_heap_size_total_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Heap Total - {{instance}}",
@@ -503,7 +503,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_heap_size_used_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_heap_size_used_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Heap Used - {{instance}}",
@@ -514,7 +514,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_external_memory_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_external_memory_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "External Memory - {{instance}}",
@@ -614,7 +614,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_active_handles_total{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_active_handles_total{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Active Handler - {{instance}}",
@@ -625,7 +625,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_active_requests_total{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_active_requests_total{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Active Request - {{instance}}",
@@ -725,7 +725,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_heap_space_size_total_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_heap_space_size_total_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Heap Total - {{instance}} - {{space}}",
@@ -825,7 +825,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_heap_space_size_used_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_heap_space_size_used_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Heap Used - {{instance}} - {{space}}",
@@ -925,7 +925,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "nodejs_heap_space_size_available_bytes{instance=~\"$instance\"}",
+          "expr": "flowise_nodejs_heap_space_size_available_bytes{instance=~\"$instance\"}",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Heap Used - {{instance}} - {{space}}",
@@ -953,14 +953,14 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(nodejs_version_info, instance)",
+        "definition": "label_values(flowise_version_info, instance)",
         "hide": 0,
         "includeAll": true,
         "label": "instance",
         "multi": true,
         "name": "instance",
         "options": [],
-        "query": "label_values(nodejs_version_info, instance)",
+        "query": "label_values(flowise_version_info, instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
