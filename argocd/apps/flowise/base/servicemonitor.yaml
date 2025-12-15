@@ -5,7 +5,7 @@ metadata:
   labels:
     app: flowise
     component: server
-    release: prometheus  # Match with Prometheus operator release name
+    release: prometheus  # Required for Prometheus Operator to discover this ServiceMonitor
 spec:
   selector:
     matchLabels:
