@@ -54,33 +54,8 @@ spec:
                 name: prometheus-kube-prometheus-prometheus
                 port:
                   number: 9090
----
-# ============================================
-# ALERTMANAGER INGRESS - DEV (Optional)
-# ============================================
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: alertmanager
-  namespace: monitoring
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: monitoring-dev
-    alb.ingress.kubernetes.io/group.order: '20'
     
-    # Health Check
-    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
-    alb.ingress.kubernetes.io/healthcheck-path: /-/healthy
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
-    
-    # HTTPS
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-spec:
-  rules:
+    # AlertManager
     - host: alertmanager-dev.do2506.click
       http:
         paths:
