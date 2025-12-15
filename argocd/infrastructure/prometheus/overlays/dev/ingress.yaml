@@ -7,11 +7,12 @@ metadata:
   name: grafana
   namespace: monitoring
   annotations:
-    # ALB Configuration
+    # ALB Configuration - Shared ALB using group
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/load-balancer-name: monitoring-dev-alb
+    alb.ingress.kubernetes.io/group.name: monitoring-dev
+    alb.ingress.kubernetes.io/group.order: '10'
     
     # Health Check
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
@@ -23,7 +24,7 @@ metadata:
     
     # HTTPS Configuration
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/00e4da28-c7f2-44e8-9e34-c44e1a3fd86e
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     
     # Tags
@@ -66,8 +67,8 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/load-balancer-name: monitoring-dev-alb
     alb.ingress.kubernetes.io/group.name: monitoring-dev
+    alb.ingress.kubernetes.io/group.order: '20'
     
     # Health Check
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
@@ -76,7 +77,7 @@ metadata:
     
     # HTTPS
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/00e4da28-c7f2-44e8-9e34-c44e1a3fd86e
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
     alb.ingress.kubernetes.io/ssl-redirect: '443'
 spec:
   rules:

@@ -1,368 +1,211 @@
-name: Deploy to Kubernetes via ArgoCD
+#!/bin/bash
+# ========================================
+# GET ARGOCD AUTH TOKEN
+# ========================================
+# This script retrieves ArgoCD server URL and generates auth token
+# for CLI access or CI/CD integration
+# ========================================
+set -e
 
-on:
-    workflow_dispatch:
-        inputs:
-            environment:
-                description: 'Environment to deploy'
-                type: choice
-                required: true
-                default: 'dev'
-                options:
-                    - dev
-                    - staging
-                    - production
-            tag_version:
-                description: 'Tag version (optional, auto-generated if empty)'
-                type: string
-                required: false
-            node_version:
-                description: 'Node.js version'
-                type: choice
-                required: true
-                default: '20'
-                options:
-                    - '20'
-    push:
-        branches:
-            - main
-        paths:
-            - 'packages/**'
-            - 'Dockerfile'
-            - '.github/workflows/deploy-to-k8s.yml'
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-env:
-    AWS_REGION: ap-southeast-1
-    GITOPS_REPO: TomJennyDev/devops
+# Script directory and paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SECRETS_DIR="$PROJECT_ROOT/environments/dev/secrets"
 
-jobs:
-    # ============================================
-    # Job 1: Set Environment Variables
-    # ============================================
-    set-env:
-        name: Set Environment
-        runs-on: ubuntu-latest
-        outputs:
-            tag: ${{ steps.set-vars.outputs.tag }}
-            env: ${{ steps.set-vars.outputs.env }}
-            node_version: ${{ steps.set-vars.outputs.node_version }}
-            overlay_path: ${{ steps.set-vars.outputs.overlay_path }}
-        steps:
-            - name: Set variables
-              id: set-vars
-              run: |
-                  # Get short SHA for tagging
-                  SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}🔐 GET ARGOCD AUTH TOKEN${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
 
-                  # Determine environment and tag (always use SHA)
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                      ENV="${{ github.event.inputs.environment }}"
-                      NODE_VERSION="${{ github.event.inputs.node_version }}"
-                      if [ -n "${{ github.event.inputs.tag_version }}" ]; then
-                          TAG="${{ github.event.inputs.tag_version }}-${SHORT_SHA}"
-                      else
-                          TAG="${SHORT_SHA}"
-                      fi
-                  else
-                      # Auto-trigger from main branch
-                      TAG="${SHORT_SHA}"
-                      ENV="production"
-                      NODE_VERSION="20"
-                  fi
+# ========================================
+# STEP 1: GET ARGOCD SERVER
+# ========================================
+echo -e "${YELLOW}📋 Step 1: Getting ArgoCD server URL...${NC}"
 
-                  OVERLAY_PATH="overlays/${ENV}"
+# Get server from Ingress
+ARGOCD_SERVER=$(kubectl get ingress argocd-server -n argocd -o jsonpath='{.spec.rules[0].host}' 2>/dev/null)
 
-                  echo "tag=${TAG}" >> $GITHUB_OUTPUT
-                  echo "env=${ENV}" >> $GITHUB_OUTPUT
-                  echo "node_version=${NODE_VERSION}" >> $GITHUB_OUTPUT
-                  echo "overlay_path=${OVERLAY_PATH}" >> $GITHUB_OUTPUT
+if [ -z "$ARGOCD_SERVER" ]; then
+    echo -e "${RED}❌ ArgoCD Ingress not found!${NC}"
+    exit 1
+fi
 
-                  echo "🏷️ Tag: ${TAG}"
-                  echo "🔖 SHA: ${{ github.sha }}"
-                  echo "🌍 Environment: ${ENV}"
-                  echo "📦 Node Version: ${NODE_VERSION}"
-                  echo "📂 Overlay Path: ${OVERLAY_PATH}"
+echo -e "${GREEN}✅ ARGOCD_SERVER=$ARGOCD_SERVER${NC}"
+echo ""
 
-    # ============================================
-    # Job 2: Build and Push Server Image
-    # ============================================
-    build-server:
-        name: Build Server Image
-        needs: set-env
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
-        outputs:
-            image_uri: ${{ steps.image-uri.outputs.uri }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+# ========================================
+# STEP 2: GET ADMIN PASSWORD
+# ========================================
+echo -e "${YELLOW}📋 Step 2: Getting admin password...${NC}"
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d)
 
-            # Configure AWS credentials
-            - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: ${{ env.AWS_REGION }}
+if [ -z "$ARGOCD_PASSWORD" ]; then
+    echo -e "${RED}❌ Admin password not found!${NC}"
+    exit 1
+fi
 
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
+echo -e "${GREEN}✅ Password retrieved${NC}"
+echo ""
 
-            - name: Set image URI
-              id: image-uri
-              run: |
-                  REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-                  IMAGE_URI="${REGISTRY}/flowise-server:${{ needs.set-env.outputs.tag }}"
-                  echo "uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
-                  echo "📦 Server Image: ${IMAGE_URI}"
-                  echo "🏷️ Additional tags: latest, ${{ github.sha }}"
+# ========================================
+# STEP 3: LOGIN AND GET TOKEN
+# ========================================
+echo -e "${YELLOW}📋 Step 3: Configuring authentication...${NC}"
+echo ""
 
-            - name: Build and push Server image
-              uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  file: ./packages/server/Dockerfile
-                  build-args: |
-                      NODE_VERSION=${{ needs.set-env.outputs.node_version }}
-                  platforms: linux/amd64
-                  push: true
-                  tags: |
-                      ${{ steps.image-uri.outputs.uri }}
-                      ${{ steps.login-ecr.outputs.registry }}/flowise-server:latest
-                      ${{ steps.login-ecr.outputs.registry }}/flowise-server:${{ github.sha }}
-                  cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/flowise-server:buildcache
-                  cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/flowise-server:buildcache,mode=max
+echo "Using password-based authentication..."
+echo ""
+echo -e "${YELLOW}Note: ArgoCD supports both authentication methods:${NC}"
+echo "  • Username/Password (what we'll use)"
+echo "  • Bearer JWT token (optional)"
+echo ""
 
-    # ============================================
-    # Job 3: Build and Push UI Image
-    # ============================================
-    build-ui:
-        name: Build UI Image
-        needs: set-env
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
-        outputs:
-            image_uri: ${{ steps.image-uri.outputs.uri }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+# Use admin password for authentication
+ARGOCD_AUTH_TOKEN="$ARGOCD_PASSWORD"
+AUTH_METHOD="password"
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+echo -e "${GREEN}✅ Authentication configured${NC}"
+echo ""
 
-            - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: ${{ env.AWS_REGION }}
+# ========================================
+# SAVE TO FILE
+# ========================================
+# Create secrets directory if not exists
+mkdir -p "$SECRETS_DIR"
 
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
+# Save credentials to environment-specific file
+ENV_FILE="$SECRETS_DIR/argocd-credentials.env"
+cat > "$ENV_FILE" << EOF
+# ==================================================
+# ArgoCD Credentials - Dev Environment
+# ==================================================
+# Generated: $(date)
+# Server: $ARGOCD_SERVER
+# Auth Method: $AUTH_METHOD
+# 
+# ⚠️  SECURITY WARNING:
+# - Do not commit this file to version control
+# - Keep credentials secure and rotate regularly
+# - This file is git-ignored by default
+# ==================================================
 
-            - name: Set image URI
-              id: image-uri
-              run: |
-                  REGISTRY="${{ steps.login-ecr.outputs.registry }}"
-                  IMAGE_URI="${REGISTRY}/flowise-ui:${{ needs.set-env.outputs.tag }}"
-                  echo "uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
-                  echo "📦 UI Image: ${IMAGE_URI}"
-                  echo "🏷️ Additional tags: latest, ${{ github.sha }}"
+export ARGOCD_SERVER=$ARGOCD_SERVER
+export ARGOCD_AUTH_TOKEN=$ARGOCD_AUTH_TOKEN
+export ARGOCD_PASSWORD=$ARGOCD_PASSWORD
+export ARGOCD_USERNAME=admin
 
-            - name: Build and push UI image
-              uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  file: ./packages/ui/Dockerfile
-                  build-args: |
-                      NODE_VERSION=${{ needs.set-env.outputs.node_version }}
-                  platforms: linux/amd64
-                  push: true
-                  tags: |
-                      ${{ steps.image-uri.outputs.uri }}
-                      ${{ steps.login-ecr.outputs.registry }}/flowise-ui:latest
-                      ${{ steps.login-ecr.outputs.registry }}/flowise-ui:${{ github.sha }}
-                  cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/flowise-ui:buildcache
-                  cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/flowise-ui:buildcache,mode=max
+# Additional ArgoCD configuration
+export ARGOCD_OPTS="--insecure --grpc-web"
 
-    # ============================================
-    # Job 4: Update Kustomize and Trigger ArgoCD
-    # ============================================
-    update-gitops-and-deploy:
-        name: Update GitOps & Trigger ArgoCD
-        needs: [set-env, build-server, build-ui]
-        runs-on: ubuntu-latest
-        steps:
-            # Checkout GitOps repository
-            - name: Checkout GitOps repository
-              uses: actions/checkout@v4
-              with:
-                  repository: ${{ env.GITOPS_REPO }}
-                  token: ${{ secrets.GITOPS_TOKEN }}
-                  path: gitops
+# ==================================================
+# Usage:
+# ==================================================
+# 1. Load credentials:
+#    source $ENV_FILE
+#
+# 2. Use with ArgoCD CLI:
+#    argocd app list --server \$ARGOCD_SERVER --insecure \\
+#      --auth-token \$ARGOCD_AUTH_TOKEN
+#
+#    Or with password:
+#    argocd app list --server \$ARGOCD_SERVER --insecure \\
+#      --username \$ARGOCD_USERNAME --password \$ARGOCD_PASSWORD
+#
+# 3. Use with curl (Bearer token):
+#    curl -sk -H "Authorization: Bearer \$ARGOCD_AUTH_TOKEN" \\
+#      https://\$ARGOCD_SERVER/api/v1/applications
+#
+# 4. Use with curl (Basic auth):
+#    curl -sk --user "\$ARGOCD_USERNAME:\$ARGOCD_PASSWORD" \\
+#      https://\$ARGOCD_SERVER/api/v1/applications
+# ==================================================
+EOF
+chmod 600 "$ENV_FILE"
 
-            # Install kustomize
-            - name: Setup Kustomize
-              uses: imranismail/setup-kustomize@v2
+echo -e "${GREEN}✅ Credentials saved to: $ENV_FILE${NC}"
+echo ""
 
-            # Update image tags
-            - name: Update image tags in Kustomize
-              run: |
-                  cd gitops/${{ needs.set-env.outputs.overlay_path }}
+# Save token only (for CI/CD)
+TOKEN_FILE="$SECRETS_DIR/argocd-token.txt"
+echo "$ARGOCD_AUTH_TOKEN" > "$TOKEN_FILE"
+chmod 600 "$TOKEN_FILE"
+echo -e "${GREEN}✅ Token saved to: $TOKEN_FILE${NC}"
+echo ""
 
-                  TAG="${{ needs.set-env.outputs.tag }}"
-                  SERVER_IMAGE="${{ needs.build-server.outputs.image_uri }}"
-                  UI_IMAGE="${{ needs.build-ui.outputs.image_uri }}"
+# Save server URL (for CI/CD)
+SERVER_FILE="$SECRETS_DIR/argocd-server.txt"
+echo "$ARGOCD_SERVER" > "$SERVER_FILE"
+chmod 600 "$SERVER_FILE"
+echo -e "${GREEN}✅ Server URL saved to: $SERVER_FILE${NC}"
+echo ""
 
-                  echo "📝 Updating images:"
-                  echo "  Server: ${SERVER_IMAGE}"
-                  echo "  UI: ${UI_IMAGE}"
+# Create .gitignore in secrets directory
+GITIGNORE_FILE="$SECRETS_DIR/.gitignore"
+cat > "$GITIGNORE_FILE" << 'EOF'
+# Ignore all files in secrets directory
+*
 
-                  # Update server image
-                  kustomize edit set image flowise-server=${SERVER_IMAGE}
+# Except this .gitignore
+!.gitignore
 
-                  # Update UI image
-                  kustomize edit set image flowise-ui=${UI_IMAGE}
+# And README if exists
+!README.md
+EOF
 
-                  echo ""
-                  echo "✅ Updated kustomization.yaml:"
-                  cat kustomization.yaml
+echo -e "${GREEN}✅ Created .gitignore in secrets directory${NC}"
+echo ""
 
-            # Commit and push changes
-            - name: Commit and push to GitOps repo
-              run: |
-                  cd gitops
-
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-
-                  git add ${{ needs.set-env.outputs.overlay_path }}/kustomization.yaml
-
-                  if git diff --staged --quiet; then
-                      echo "⚠️ No changes detected, skipping commit"
-                      exit 0
-                  fi
-
-                  git commit -m "chore(${{ needs.set-env.outputs.env }}): update images to ${{ needs.set-env.outputs.tag }}"
-                  git push origin main
-
-                  echo "✅ Changes pushed to GitOps repository"
-
-            # Trigger ArgoCD sync
-            - name: Install ArgoCD CLI
-              run: |
-                  curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-                  chmod +x argocd
-                  sudo mv argocd /usr/local/bin/
-                  argocd version --client
-
-            - name: Trigger ArgoCD sync and wait
-              env:
-                  ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-                  ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
-                  ENV: ${{ needs.set-env.outputs.env }}
-              run: |
-                  # Login to ArgoCD
-                  echo "🔐 Logging in to ArgoCD..."
-                  argocd login ${ARGOCD_SERVER} \
-                      --auth-token ${ARGOCD_AUTH_TOKEN} \
-                      --grpc-web \
-                      --insecure
-
-                  APP_NAME="flowise-${ENV}"
-
-                  echo "🔄 Triggering ArgoCD sync for: ${APP_NAME}"
-
-                  # Refresh app to detect changes
-                  argocd app get ${APP_NAME} --refresh > /dev/null
-
-                  # Trigger sync
-                  argocd app sync ${APP_NAME} \
-                      --prune \
-                      --force
-
-                  echo ""
-                  echo "⏳ Waiting for deployment to complete..."
-
-                  # Wait for healthy status
-                  argocd app wait ${APP_NAME} \
-                      --health \
-                      --timeout 600
-
-                  echo ""
-                  echo "✅ Deployment completed successfully!"
-
-            # Get final status
-            - name: Show deployment summary
-              if: always()
-              env:
-                  ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-                  ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
-                  ENV: ${{ needs.set-env.outputs.env }}
-              run: |
-                  APP_NAME="flowise-${ENV}"
-
-                  echo "📊 Deployment Summary:"
-                  echo "═══════════════════════════════════════"
-                  argocd app get ${APP_NAME}
-
-                  echo ""
-                  echo "📝 Resource Status:"
-                  echo "═══════════════════════════════════════"
-                  argocd app resources ${APP_NAME}
-
-    # ============================================
-    # Job 5: Post-deployment Health Check
-    # ============================================
-    health-check:
-        name: Health Check
-        needs: [set-env, update-gitops-and-deploy]
-        runs-on: ubuntu-latest
-        if: success()
-        steps:
-            - name: Wait for pods to stabilize
-              run: sleep 60
-
-            - name: Health check
-              env:
-                  ENV: ${{ needs.set-env.outputs.env }}
-              run: |
-                  if [ "${ENV}" = "production" ]; then
-                      ENDPOINT="${{ secrets.PROD_ENDPOINT }}"
-                  elif [ "${ENV}" = "staging" ]; then
-                      ENDPOINT="${{ secrets.STAGING_ENDPOINT }}"
-                  else
-                      ENDPOINT="${{ secrets.DEV_ENDPOINT }}"
-                  fi
-
-                  echo "🔍 Health check endpoint: ${ENDPOINT}/api/v1/health"
-
-                  # Retry health check up to 10 times
-                  for i in {1..10}; do
-                      if curl -f -s "${ENDPOINT}/api/v1/health"; then
-                          echo "✅ Health check passed!"
-                          exit 0
-                      fi
-                      echo "⏳ Attempt ${i}/10 failed, retrying in 10s..."
-                      sleep 10
-                  done
-
-                  echo "❌ Health check failed after 10 attempts"
-                  exit 1
-
-            - name: Notify deployment success
-              if: success()
-              run: |
-                  echo "🎉 Deployment completed successfully!"
-                  echo "Environment: ${{ needs.set-env.outputs.env }}"
-                  echo "Tag: ${{ needs.set-env.outputs.tag }}"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${GREEN}✅ Files Created:${NC}"
+echo ""
+echo "1. $ENV_FILE"
+echo "   - Full credentials with export statements"
+echo ""
+echo "2. $TOKEN_FILE"
+echo "   - Auth token only (for scripts/CI/CD)"
+echo ""
+echo "3. $SERVER_FILE"
+echo "   - Server URL only (for scripts/CI/CD)"
+echo ""
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo -e "${GREEN}✅ READY TO USE!${NC}"
+echo ""
+echo -e "${YELLOW}📝 To load credentials in your current shell:${NC}"
+echo ""
+echo -e "${GREEN}   source $ENV_FILE${NC}"
+echo ""
+echo -e "Or copy-paste this:"
+echo ""
+echo -e "${BLUE}source $ENV_FILE${NC}"
+echo ""
+echo -e "${BLUE}========================================${NC}"
+echo ""
+echo -e "${YELLOW}💡 Usage Examples After Loading:${NC}"
+echo ""
+echo "1️⃣  ${YELLOW}Test connection (CLI):${NC}"
+echo "   argocd app list --server \$ARGOCD_SERVER --insecure \\
+     --auth-token \$ARGOCD_AUTH_TOKEN"
+echo ""
+echo "2️⃣  ${YELLOW}Test with password (CLI):${NC}"
+echo "   argocd app list --server \$ARGOCD_SERVER --insecure \\
+     --username admin --password \$ARGOCD_PASSWORD"
+echo ""
+echo "3️⃣  ${YELLOW}Test with curl (Bearer):${NC}"
+echo "   curl -sk -H \"Authorization: Bearer \$ARGOCD_AUTH_TOKEN\" \\
+     https://\$ARGOCD_SERVER/api/v1/applications"
+echo ""
+echo "4️⃣  ${YELLOW}Test with curl (Basic Auth):${NC}"
+echo "   curl -sk --user \"admin:\$ARGOCD_PASSWORD\" \\
+     https://\$ARGOCD_SERVER/api/v1/applications"
+echo ""
+echo -e "${BLUE}========================================${NC}"
+echo ""

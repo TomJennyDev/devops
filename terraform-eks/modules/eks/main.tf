@@ -39,18 +39,17 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
 }
 
 # ============================================
-# EKS Addons (Latest versions as of Nov 2025)
+# EKS Addons - DISABLED (Managed by eks-addons module)
 # ============================================
-resource "aws_eks_addon" "vpc_cni" {
-  count = var.enable_cluster_addons ? 1 : 0
-
-  cluster_name             = aws_eks_cluster.main.name
-  addon_name               = "vpc-cni"
-  addon_version            = var.vpc_cni_version
-  resolve_conflicts_on_update = "PRESERVE"
-
-  tags = var.common_tags
-}
+# Moved to separate eks-addons module for better dependency management
+# resource "aws_eks_addon" "vpc_cni" {
+#   count = var.enable_cluster_addons ? 1 : 0
+#   cluster_name             = aws_eks_cluster.main.name
+#   addon_name               = "vpc-cni"
+#   addon_version            = var.vpc_cni_version
+#   resolve_conflicts_on_update = "PRESERVE"
+#   tags = var.common_tags
+# }
 
 # NOTE: CoreDNS addon moved to root module (main.tf)
 # Reason: CoreDNS needs node groups to be ready, but node_groups module
@@ -72,16 +71,14 @@ resource "aws_eks_addon" "vpc_cni" {
 #   tags = var.common_tags
 # }
 
-resource "aws_eks_addon" "kube_proxy" {
-  count = var.enable_cluster_addons ? 1 : 0
-
-  cluster_name             = aws_eks_cluster.main.name
-  addon_name               = "kube-proxy"
-  addon_version            = var.kube_proxy_version
-  resolve_conflicts_on_update = "PRESERVE"
-
-  tags = var.common_tags
-}
+# resource "aws_eks_addon" "kube_proxy" {
+#   count = var.enable_cluster_addons ? 1 : 0
+#   cluster_name             = aws_eks_cluster.main.name
+#   addon_name               = "kube-proxy"
+#   addon_version            = var.kube_proxy_version
+#   resolve_conflicts_on_update = "PRESERVE"
+#   tags = var.common_tags
+# }
 
 # ============================================
 # OIDC Provider for IRSA (IAM Roles for Service Accounts)
