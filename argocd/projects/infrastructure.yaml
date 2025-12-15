@@ -17,6 +17,8 @@ spec:
   
   # Destination clusters and namespaces
   destinations:
+    - namespace: 'argocd'
+      server: 'https://kubernetes.default.svc'
     - namespace: 'kube-system'
       server: 'https://kubernetes.default.svc'
     - namespace: 'cert-manager'
