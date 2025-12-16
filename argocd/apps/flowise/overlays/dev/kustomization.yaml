@@ -25,10 +25,9 @@ patchesStrategicMerge:
 images:
 - name: flowise-server
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
-  newTag: cc6a907
-- name: flowise-ui
+- digest: sha256:c0c2d9af3d43d13927a48480851dd2773d46f66091c6c55803ededd5cce43dd0
+  name: flowise-ui
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
-  newTag: cc6a907
 
 # ConfigMap generator for dev-specific config
 configMapGenerator:
