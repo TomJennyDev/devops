@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-server
+spec:
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-12-16T14:51:10Z"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-ui
+spec:
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-12-16T14:51:10Z"
