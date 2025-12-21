@@ -29,14 +29,11 @@ permissions:
 
 jobs:
   # ========================================
-  # JOB 1: TERRAFORM VALIDATION
+  # JOB 1: TERRAFORM VALIDATION (DEV ONLY)
   # ========================================
   validate:
-    name: 'Terraform Validate'
+    name: 'Terraform Validate - Dev'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        environment: [dev, staging, prod]
 
     steps:
       - name: Checkout Code
@@ -56,19 +53,19 @@ jobs:
       - name: Terraform Init (Backend Disabled)
         id: init
         run: terraform init -backend=false
-        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+        working-directory: ./terraform-eks/environments/dev
 
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
-        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+        working-directory: ./terraform-eks/environments/dev
 
       - name: Comment PR - Validation Results
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `#### Terraform Validation Results (${{ matrix.environment }}) 🔍
+            const output = `#### Terraform Validation Results (Dev) 🔍
 
             #### Terraform Format 🖌\`${{ steps.fmt.outcome }}\`
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
