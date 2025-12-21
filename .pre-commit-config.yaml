@@ -1,0 +1,154 @@
+# ========================================
+# PRE-COMMIT HOOKS CONFIGURATION
+# ========================================
+# Automated code quality checks before commit
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # ========================================
+  # TERRAFORM HOOKS
+  # ========================================
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.94.1
+    hooks:
+      # Format Terraform files
+      - id: terraform_fmt
+        name: Terraform fmt
+        description: Rewrites Terraform config files to canonical format
+        
+      # Validate Terraform configuration
+      - id: terraform_validate
+        name: Terraform validate
+        description: Validates all Terraform configuration files
+        args:
+          - --hook-config=--retry-once-with-cleanup=true
+          
+      # Generate documentation
+      - id: terraform_docs
+        name: Terraform docs
+        description: Inserts terraform-docs output into README.md
+        args:
+          - --hook-config=--path-to-file=README.md
+          - --hook-config=--add-to-existing-file=true
+          - --hook-config=--create-file-if-not-exist=true
+          
+      # Lint Terraform files
+      - id: terraform_tflint
+        name: Terraform tflint
+        description: Validates Terraform with tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+          
+      # Security scanning
+      - id: terraform_tfsec
+        name: Terraform tfsec
+        description: Static security analysis for Terraform code
+        args:
+          - --args=--concise-output
+          - --args=--exclude-downloaded-modules
+
+  # ========================================
+  # KUBERNETES MANIFESTS
+  # ========================================
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      # Validate YAML syntax
+      - id: forbid-tabs
+        name: No tabs in YAML
+        files: \.(yaml|yml)$
+        
+  # Kubeval for Kubernetes validation
+  - repo: https://github.com/instrumenta/kubeval
+    rev: v0.16.1
+    hooks:
+      - id: kubeval
+        name: Validate Kubernetes manifests
+        files: ^argocd/.*\.(yaml|yml)$
+        args:
+          - --ignore-missing-schemas
+
+  # ========================================
+  # GENERAL CODE QUALITY
+  # ========================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Prevent large files
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=500']
+        
+      # Check YAML syntax
+      - id: check-yaml
+        name: Check YAML syntax
+        args: ['--allow-multiple-documents']
+        
+      # Check JSON syntax
+      - id: check-json
+        name: Check JSON syntax
+        
+      # Detect AWS credentials
+      - id: detect-aws-credentials
+        name: Detect AWS credentials
+        args: ['--allow-missing-credentials']
+        
+      # Detect private keys
+      - id: detect-private-key
+        name: Detect private keys
+        
+      # Check merge conflicts
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        
+      # Trim trailing whitespace
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        args: ['--markdown-linebreak-ext=md']
+        
+      # Fix end of files
+      - id: end-of-file-fixer
+        name: Fix end of files
+        
+      # Check case conflicts
+      - id: check-case-conflict
+        name: Check for case conflicts
+        
+      # Mixed line endings
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: ['--fix=lf']
+
+  # ========================================
+  # SECRETS DETECTION
+  # ========================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  # ========================================
+  # MARKDOWN LINTING
+  # ========================================
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown files
+        args: ['--fix', '--ignore', 'node_modules']
+
+  # ========================================
+  # SHELL SCRIPT LINTING
+  # ========================================
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: Shellcheck
+        args: ['--severity=warning']
+        files: \.sh$

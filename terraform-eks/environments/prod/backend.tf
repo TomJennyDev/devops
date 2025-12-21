@@ -13,6 +13,9 @@ terraform {
     dynamodb_table = "terraform-state-lock-prod"
     encrypt        = true
     
+    # Optional: Use KMS for additional encryption control
+    # kms_key_id = "arn:aws:kms:ap-southeast-1:372836560690:key/..." # Uncomment and add KMS key ARN if needed
+    
     # Additional production safeguards:
     # 1. Enable S3 bucket versioning
     # 2. Enable MFA delete on bucket

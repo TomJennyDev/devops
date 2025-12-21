@@ -1,0 +1,403 @@
+# ========================================
+# TERRAFORM CI/CD PIPELINE
+# ========================================
+# Automated Terraform validation, planning, and deployment
+# Triggered on: Push to main, Pull Requests
+
+name: 'Terraform CI/CD'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform-eks/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform-eks/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  TF_VERSION: '1.9.0'
+  AWS_REGION: 'ap-southeast-1'
+  
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required for checkout
+  pull-requests: write  # Required for PR comments
+
+jobs:
+  # ========================================
+  # JOB 1: TERRAFORM VALIDATION
+  # ========================================
+  validate:
+    name: 'Terraform Validate'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform-eks
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -backend=false
+        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+
+      - name: Comment PR - Validation Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Validation Results (${{ matrix.environment }}) 🔍
+            
+            #### Terraform Format 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            
+            <details><summary>Validation Output</summary>
+            
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # ========================================
+  # JOB 2: SECURITY SCAN
+  # ========================================
+  security:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ./terraform-eks
+          soft_fail: true
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./terraform-eks
+          framework: terraform
+          soft_fail: true
+
+  # ========================================
+  # JOB 3: TERRAFORM PLAN (DEV)
+  # ========================================
+  plan-dev:
+    name: 'Terraform Plan - Dev'
+    runs-on: ubuntu-latest
+    needs: [validate, security]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    environment: dev
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/dev
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ./terraform-eks/environments/dev
+        continue-on-error: true
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-dev
+          path: ./terraform-eks/environments/dev/tfplan
+          retention-days: 5
+
+      - name: Comment PR - Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Plan (Dev) 📝
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform\n
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # ========================================
+  # JOB 4: TERRAFORM APPLY (DEV)
+  # ========================================
+  apply-dev:
+    name: 'Terraform Apply - Dev'
+    runs-on: ubuntu-latest
+    needs: plan-dev
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: 
+      name: dev
+      url: https://dev.yourdomain.com
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-dev
+          path: ./terraform-eks/environments/dev
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/dev
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform-eks/environments/dev
+
+  # ========================================
+  # JOB 5: TERRAFORM PLAN (STAGING)
+  # ========================================
+  plan-staging:
+    name: 'Terraform Plan - Staging'
+    runs-on: ubuntu-latest
+    needs: apply-dev
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/staging
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ./terraform-eks/environments/staging
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-staging
+          path: ./terraform-eks/environments/staging/tfplan
+          retention-days: 5
+
+  # ========================================
+  # JOB 6: TERRAFORM APPLY (STAGING)
+  # ========================================
+  apply-staging:
+    name: 'Terraform Apply - Staging'
+    runs-on: ubuntu-latest
+    needs: plan-staging
+    environment: 
+      name: staging
+      url: https://staging.yourdomain.com
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-staging
+          path: ./terraform-eks/environments/staging
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/staging
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform-eks/environments/staging
+
+  # ========================================
+  # JOB 7: TERRAFORM PLAN (PROD) - MANUAL
+  # ========================================
+  plan-prod:
+    name: 'Terraform Plan - Production'
+    runs-on: ubuntu-latest
+    needs: apply-staging
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    environment: prod
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/prod
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ./terraform-eks/environments/prod
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-prod
+          path: ./terraform-eks/environments/prod/tfplan
+          retention-days: 10
+
+  # ========================================
+  # JOB 8: TERRAFORM APPLY (PROD) - MANUAL APPROVAL
+  # ========================================
+  apply-prod:
+    name: 'Terraform Apply - Production'
+    runs-on: ubuntu-latest
+    needs: plan-prod
+    environment: 
+      name: prod
+      url: https://yourdomain.com
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-prod
+          path: ./terraform-eks/environments/prod
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform-eks/environments/prod
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform-eks/environments/prod
+
+      - name: Notify Success
+        if: success()
+        run: echo "✅ Production deployment successful!"
+
+      - name: Notify Failure
+        if: failure()
+        run: echo "❌ Production deployment failed!"

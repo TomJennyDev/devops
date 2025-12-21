@@ -3,6 +3,11 @@ variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
   default     = "us-west-2"
+  
+  validation {
+    condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.aws_region))
+    error_message = "AWS region must be valid format (e.g., us-west-2, ap-southeast-1)."
+  }
 }
 
 # EKS Cluster
@@ -10,12 +15,22 @@ variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
   default     = "my-eks-cluster"
+  
+  validation {
+    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9-]{0,99}$", var.cluster_name))
+    error_message = "Cluster name must start with letter, contain only alphanumeric and hyphens, max 100 chars."
+  }
 }
 
 variable "cluster_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
   default     = "1.34"
+  
+  validation {
+    condition     = can(regex("^1\\.(2[89]|3[0-9])$", var.cluster_version))
+    error_message = "Cluster version must be between 1.28 and 1.39 (current supported versions)."
+  }
 }
 
 # VPC Configuration
@@ -23,6 +38,11 @@ variable "vpc_cidr" {
   description = "CIDR block for VPC"
   type        = string
   default     = "10.0.0.0/16"
+  
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "VPC CIDR must be a valid IPv4 CIDR block."
+  }
 }
 
 variable "availability_zones" {
@@ -47,12 +67,22 @@ variable "public_subnet_count" {
   description = "Number of public subnets"
   type        = number
   default     = 3
+  
+  validation {
+    condition     = var.public_subnet_count >= 2 && var.public_subnet_count <= 6
+    error_message = "Public subnet count must be between 2 and 6 for proper HA setup."
+  }
 }
 
 variable "private_subnet_count" {
   description = "Number of private subnets"
   type        = number
   default     = 3
+  
+  validation {
+    condition     = var.private_subnet_count >= 2 && var.private_subnet_count <= 6
+    error_message = "Private subnet count must be between 2 and 6 for proper HA setup."
+  }
 }
 
 variable "enable_nat_gateway" {
@@ -65,6 +95,11 @@ variable "nat_gateway_count" {
   description = "Number of NAT Gateways (1 for cost saving, 3 for HA)"
   type        = number
   default     = 1
+  
+  validation {
+    condition     = var.nat_gateway_count >= 1 && var.nat_gateway_count <= 3
+    error_message = "NAT Gateway count must be 1 (cost-effective) or 3 (high availability)."
+  }
 }
 
 # EKS Node Group
