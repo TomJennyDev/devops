@@ -213,6 +213,33 @@ module "route53" {
 }
 
 # ========================================
+# CLOUDFRONT DNS RECORDS
+# ========================================
+# Separate from Route53 module to avoid circular dependency
+data "aws_route53_zone" "cloudfront" {
+  count = var.create_dns_records && var.enable_cloudfront && length(var.cloudfront_aliases) > 0 ? 1 : 0
+  
+  name         = var.domain_name
+  private_zone = false
+}
+
+resource "aws_route53_record" "cloudfront" {
+  for_each = var.create_dns_records && var.enable_cloudfront && length(var.cloudfront_aliases) > 0 ? toset(var.cloudfront_aliases) : []
+  
+  zone_id = data.aws_route53_zone.cloudfront[0].zone_id
+  name    = each.value
+  type    = "A"
+  
+  alias {
+    name                   = module.cloudfront.cloudfront_domain_name
+    zone_id                = module.cloudfront.cloudfront_hosted_zone_id
+    evaluate_target_health = false
+  }
+  
+  depends_on = [module.cloudfront]
+}
+
+# ========================================
 # RESOURCE LIMITS MODULE (K8s Resources)
 # ========================================
 module "resource_limits" {
@@ -229,4 +256,76 @@ module "resource_limits" {
   common_tags             = var.common_tags
   
   depends_on = [module.eks, module.node_groups]
+}
+
+# ========================================
+# WAF MODULE (for CloudFront or ALB)
+# ========================================
+module "waf" {
+  source = "./modules/waf"
+  
+  cluster_name                   = var.cluster_name
+  environment                    = var.environment
+  aws_region                     = var.aws_region
+  enable_waf                     = var.enable_waf
+  waf_scope                      = var.waf_scope
+  core_rule_set_excluded_rules   = var.waf_core_rule_excluded
+  enable_sql_injection_rule      = var.waf_enable_sqli_rule
+  enable_linux_rule              = var.waf_enable_linux_rule
+  enable_rate_limiting           = var.waf_enable_rate_limit
+  rate_limit_requests            = var.waf_rate_limit_value
+  enable_geo_blocking            = var.waf_enable_geo_blocking
+  blocked_countries              = var.waf_blocked_countries
+  enable_ip_blacklist            = var.waf_enable_ip_blacklist
+  blacklist_ip_addresses         = var.waf_blacklist_ips
+  enable_ip_whitelist            = var.waf_enable_ip_whitelist
+  whitelist_ip_addresses         = var.waf_whitelist_ips
+  enable_regex_pattern_matching  = var.waf_enable_regex
+  regex_patterns                 = var.waf_regex_patterns
+  enable_waf_logging             = var.waf_enable_logging
+  waf_log_retention_days         = var.waf_log_retention_days
+  waf_redacted_fields            = var.waf_redacted_fields
+  enable_waf_alarms              = var.waf_enable_alarms
+  blocked_requests_threshold     = var.waf_blocked_threshold
+  rate_limited_threshold         = var.waf_rate_limited_threshold
+  alarm_actions                  = var.waf_alarm_actions
+  common_tags                    = var.common_tags
+}
+
+# ========================================
+# CLOUDFRONT MODULE
+# ========================================
+module "cloudfront" {
+  source = "./modules/cloudfront"
+  
+  cluster_name                  = var.cluster_name
+  environment                   = var.environment
+  enable_cloudfront             = var.enable_cloudfront
+  cloudfront_aliases            = var.cloudfront_aliases
+  cloudfront_price_class        = var.cloudfront_price_class
+  default_root_object           = var.cloudfront_default_root_object
+  alb_domain_name               = var.cloudfront_alb_domain_name
+  origin_custom_header_value    = var.cloudfront_origin_custom_header
+  enable_s3_origin              = var.cloudfront_enable_s3_origin
+  s3_bucket_domain_name         = var.cloudfront_s3_bucket_domain
+  s3_origin_access_identity     = var.cloudfront_s3_oai
+  cache_default_ttl             = var.cloudfront_cache_default_ttl
+  cache_max_ttl                 = var.cloudfront_cache_max_ttl
+  cache_min_ttl                 = var.cloudfront_cache_min_ttl
+  cache_header_whitelist        = var.cloudfront_cache_headers
+  acm_certificate_arn           = var.cloudfront_acm_certificate_arn
+  geo_restriction_type          = var.cloudfront_geo_restriction_type
+  geo_restriction_locations     = var.cloudfront_geo_restriction_locations
+  enable_logging                = var.cloudfront_enable_logging
+  logging_bucket                = var.cloudfront_logging_bucket
+  waf_web_acl_id                = module.waf.waf_web_acl_id
+  enable_url_rewrite_function   = var.cloudfront_enable_url_rewrite
+  viewer_request_function_arn   = var.cloudfront_function_arn
+  enable_cloudwatch_alarms      = var.cloudfront_enable_alarms
+  error_rate_threshold          = var.cloudfront_error_rate_threshold
+  cache_hit_rate_threshold      = var.cloudfront_cache_hit_threshold
+  alarm_actions                 = var.cloudfront_alarm_actions
+  common_tags                   = var.common_tags
+  
+  depends_on = [module.alb_controller, module.route53, module.waf]
 }

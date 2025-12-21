@@ -436,3 +436,301 @@ variable "ebs_csi_driver_version" {
   type        = string
   default     = "v1.37.0-eksbuild.1"
 }
+
+# ========================================
+# CLOUDFRONT CDN VARIABLES
+# ========================================
+variable "environment" {
+  description = "Environment name (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "enable_cloudfront" {
+  description = "Enable CloudFront CDN distribution"
+  type        = bool
+  default     = false
+}
+
+variable "cloudfront_aliases" {
+  description = "List of CNAMEs (alternate domain names) for CloudFront"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudfront_price_class" {
+  description = "CloudFront price class (PriceClass_All, PriceClass_200, PriceClass_100)"
+  type        = string
+  default     = "PriceClass_100"
+}
+
+variable "cloudfront_default_root_object" {
+  description = "Default root object for CloudFront"
+  type        = string
+  default     = "index.html"
+}
+
+variable "cloudfront_alb_domain_name" {
+  description = "Domain name of the ALB (CloudFront origin)"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_origin_custom_header" {
+  description = "Custom header value for origin verification"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cloudfront_enable_s3_origin" {
+  description = "Enable S3 bucket as additional origin for static content"
+  type        = bool
+  default     = false
+}
+
+variable "cloudfront_s3_bucket_domain" {
+  description = "S3 bucket domain name for static content origin"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_s3_oai" {
+  description = "CloudFront origin access identity for S3"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_cache_default_ttl" {
+  description = "Default TTL for cached objects (seconds)"
+  type        = number
+  default     = 3600
+}
+
+variable "cloudfront_cache_max_ttl" {
+  description = "Maximum TTL for cached objects (seconds)"
+  type        = number
+  default     = 86400
+}
+
+variable "cloudfront_cache_min_ttl" {
+  description = "Minimum TTL for cached objects (seconds)"
+  type        = number
+  default     = 0
+}
+
+variable "cloudfront_cache_headers" {
+  description = "List of headers to include in cache key"
+  type        = list(string)
+  default     = ["Host", "CloudFront-Forwarded-Proto", "CloudFront-Is-Desktop-Viewer", "CloudFront-Is-Mobile-Viewer"]
+}
+
+variable "cloudfront_acm_certificate_arn" {
+  description = "ACM certificate ARN for CloudFront (must be in us-east-1)"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_geo_restriction_type" {
+  description = "Geo restriction type (none, whitelist, blacklist)"
+  type        = string
+  default     = "none"
+}
+
+variable "cloudfront_geo_restriction_locations" {
+  description = "List of country codes for geo restriction"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudfront_enable_logging" {
+  description = "Enable CloudFront access logging"
+  type        = bool
+  default     = true
+}
+
+variable "cloudfront_logging_bucket" {
+  description = "S3 bucket for CloudFront access logs"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_waf_web_acl_id" {
+  description = "AWS WAF Web ACL ID to associate with CloudFront"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_enable_url_rewrite" {
+  description = "Enable URL rewrite CloudFront function"
+  type        = bool
+  default     = false
+}
+
+variable "cloudfront_function_arn" {
+  description = "ARN of CloudFront function for viewer request"
+  type        = string
+  default     = ""
+}
+
+variable "cloudfront_enable_alarms" {
+  description = "Enable CloudWatch alarms for CloudFront"
+  type        = bool
+  default     = true
+}
+
+variable "cloudfront_error_rate_threshold" {
+  description = "Threshold for 5xx error rate alarm (%)"
+  type        = number
+  default     = 5
+}
+
+variable "cloudfront_cache_hit_threshold" {
+  description = "Threshold for cache hit rate alarm (%)"
+  type        = number
+  default     = 80
+}
+
+variable "cloudfront_alarm_actions" {
+  description = "List of ARNs to notify when alarm triggers"
+  type        = list(string)
+  default     = []
+}
+
+# ========================================
+# WAF VARIABLES
+# ========================================
+variable "enable_waf" {
+  description = "Enable AWS WAF Web ACL"
+  type        = bool
+  default     = false
+}
+
+variable "waf_scope" {
+  description = "WAF scope: CLOUDFRONT or REGIONAL"
+  type        = string
+  default     = "CLOUDFRONT"
+}
+
+variable "waf_core_rule_excluded" {
+  description = "Core rule set rules to exclude"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_enable_sqli_rule" {
+  description = "Enable SQL injection protection"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_linux_rule" {
+  description = "Enable Linux OS protection"
+  type        = bool
+  default     = true
+}
+
+variable "waf_enable_rate_limit" {
+  description = "Enable rate limiting"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit_value" {
+  description = "Max requests per 5 min"
+  type        = number
+  default     = 2000
+}
+
+variable "waf_enable_geo_blocking" {
+  description = "Enable geo blocking"
+  type        = bool
+  default     = false
+}
+
+variable "waf_blocked_countries" {
+  description = "Countries to block"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_enable_ip_blacklist" {
+  description = "Enable IP blacklist"
+  type        = bool
+  default     = false
+}
+
+variable "waf_blacklist_ips" {
+  description = "IPs to block"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_enable_ip_whitelist" {
+  description = "Enable IP whitelist"
+  type        = bool
+  default     = false
+}
+
+variable "waf_whitelist_ips" {
+  description = "IPs to allow"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_enable_regex" {
+  description = "Enable regex patterns"
+  type        = bool
+  default     = false
+}
+
+variable "waf_regex_patterns" {
+  description = "Regex patterns"
+  type        = list(string)
+  default     = []
+}
+
+variable "waf_enable_logging" {
+  description = "Enable WAF logging"
+  type        = bool
+  default     = true
+}
+
+variable "waf_log_retention_days" {
+  description = "Log retention days"
+  type        = number
+  default     = 30
+}
+
+variable "waf_redacted_fields" {
+  description = "Fields to redact"
+  type = list(object({
+    type = string
+    name = optional(string)
+  }))
+  default = []
+}
+
+variable "waf_enable_alarms" {
+  description = "Enable WAF alarms"
+  type        = bool
+  default     = true
+}
+
+variable "waf_blocked_threshold" {
+  description = "Blocked requests threshold"
+  type        = number
+  default     = 100
+}
+
+variable "waf_rate_limited_threshold" {
+  description = "Rate limited threshold"
+  type        = number
+  default     = 50
+}
+
+variable "waf_alarm_actions" {
+  description = "SNS topic ARNs"
+  type        = list(string)
+  default     = []
+}

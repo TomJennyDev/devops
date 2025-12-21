@@ -131,3 +131,20 @@ output "configure_kubectl" {
   description = "Command to configure kubectl"
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${var.cluster_name}"
 }
+# ============================================
+# WAF Outputs
+# ============================================
+output "waf_web_acl_id" {
+  description = "WAF Web ACL ID"
+  value       = module.waf.waf_web_acl_id
+}
+
+output "waf_web_acl_arn" {
+  description = "WAF Web ACL ARN"
+  value       = module.waf.waf_web_acl_arn
+}
+
+output "waf_web_acl_name" {
+  description = "WAF Web ACL name"
+  value       = module.waf.waf_web_acl_name
+}
