@@ -18,7 +18,7 @@ spec:
                 values:
                 - aws-load-balancer-controller
             topologyKey: kubernetes.io/hostname
-      
+
       # Topology Spread: Better distribution
       topologySpreadConstraints:
       - maxSkew: 1
@@ -27,7 +27,7 @@ spec:
         labelSelector:
           matchLabels:
             app.kubernetes.io/name: aws-load-balancer-controller
-      
+
       containers:
       - name: controller
         args:
@@ -38,7 +38,7 @@ spec:
         - --aws-region=ap-southeast-1
         # ⚠️ UPDATE after 'terraform apply': Get from terraform output vpc_id
         - --aws-vpc-id=vpc-0e6ca42c7851c46c4
-        
+
         # Updated resources for better performance
         resources:
           limits:
@@ -47,7 +47,7 @@ spec:
           requests:
             cpu: 200m      # Increased baseline
             memory: 512Mi  # More memory
-        
+
         # Liveness probe
         livenessProbe:
           httpGet:
@@ -58,7 +58,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         # Readiness probe
         readinessProbe:
           httpGet:

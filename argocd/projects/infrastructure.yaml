@@ -7,14 +7,14 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   description: Infrastructure components (cert-manager, ALB controller, monitoring, etc.)
-  
+
   # Source repositories
   sourceRepos:
     - 'https://github.com/TomJennyDev/devops.git'
     - 'https://aws.github.io/eks-charts'
     - 'https://prometheus-community.github.io/helm-charts'
     - 'https://charts.jetstack.io'
-  
+
   # Destination clusters and namespaces
   destinations:
     - namespace: 'argocd'
@@ -27,19 +27,19 @@ spec:
       server: 'https://kubernetes.default.svc'
     - namespace: 'ingress-nginx'
       server: 'https://kubernetes.default.svc'
-  
+
   # Allowed cluster resources
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
-  
+
   # Namespace resource blacklist (prevent certain resources)
   namespaceResourceBlacklist:
     - group: ''
       kind: 'ResourceQuota'
     - group: ''
       kind: 'LimitRange'
-  
+
   # Roles for RBAC
   roles:
     - name: infrastructure-admin
@@ -48,7 +48,7 @@ spec:
         - p, proj:infrastructure:infrastructure-admin, applications, *, infrastructure/*, allow
       groups:
         - infrastructure-team
-    
+
     - name: infrastructure-readonly
       description: Read-only access to infrastructure project
       policies:

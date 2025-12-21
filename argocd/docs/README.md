@@ -23,17 +23,20 @@ EKS Cluster (Deployment)
 ## ✅ Yêu Cầu Đã Setup
 
 ### 1. **ArgoCD Installation**
+
 - [x] ArgoCD được cài đặt bằng Helm
 - [x] Ingress với ALB đã được cấu hình
 - [x] HTTPS với ACM certificate
 - [x] gRPC-web enabled cho GitHub Actions
 
 ### 2. **Repository Configuration**
+
 - [x] GitOps repository đã được add
 - [x] RBAC policies cho CI/CD access
 - [x] API token đã được generate
 
 ### 3. **Applications**
+
 - [x] flowise-dev
 - [x] flowise-staging  
 - [x] flowise-production
@@ -251,6 +254,7 @@ argocd/
 ## 🎯 GitHub Workflow Integration Points
 
 ### **1. Workflow Updates Kustomize**
+
 ```yaml
 # In GitHub Actions
 kustomize edit set image flowise-server=${SERVER_IMAGE}
@@ -259,10 +263,12 @@ git commit && git push
 ```
 
 ### **2. ArgoCD Detects Change**
+
 - Auto-sync enabled → immediate sync
 - Manual sync → GitHub Actions triggers via CLI
 
 ### **3. GitHub Actions Triggers Sync**
+
 ```yaml
 - name: Trigger ArgoCD sync
   run: |

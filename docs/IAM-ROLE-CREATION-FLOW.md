@@ -6,7 +6,7 @@
 
 ---
 
-## 📊 Creation Flow:
+## 📊 Creation Flow
 
 ```
 1. terraform apply
@@ -34,33 +34,35 @@
 
 ---
 
-## 🎯 Terraform Code Flow:
+## 🎯 Terraform Code Flow
 
 ### **Step 1: Root main.tf calls module**
+
 ```terraform
 # terraform-eks/main.tf (line 138)
 module "alb_controller" {
   source = "./modules/alb-controller"
-  
+
   cluster_name       = var.cluster_name              # "my-eks-dev"
   oidc_provider_arn  = module.eks.oidc_provider_arn  # From EKS module
   oidc_provider_url  = module.eks.oidc_provider_url  # From EKS module
   enable_aws_load_balancer_controller = true
-  
+
   depends_on = [module.eks]  # ← Must create EKS first!
 }
 ```
 
 ### **Step 2: Module creates IAM Role**
+
 ```terraform
 # modules/alb-controller/main.tf (line 10)
 resource "aws_iam_role" "aws_load_balancer_controller" {
   count = var.enable_aws_load_balancer_controller ? 1 : 0
-  
+
   # Role name format: {cluster_name}-aws-load-balancer-controller
   name = "${var.cluster_name}-aws-load-balancer-controller"
   # Result: "my-eks-dev-aws-load-balancer-controller"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -84,6 +86,7 @@ resource "aws_iam_role" "aws_load_balancer_controller" {
 ```
 
 ### **Step 3: Output ARN**
+
 ```terraform
 # modules/alb-controller/outputs.tf (line 1)
 output "aws_load_balancer_controller_role_arn" {
@@ -99,7 +102,7 @@ output "aws_load_balancer_controller_role_arn" {
 
 ---
 
-## 🔐 IRSA (IAM Roles for Service Accounts) Mechanism:
+## 🔐 IRSA (IAM Roles for Service Accounts) Mechanism
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -148,7 +151,7 @@ output "aws_load_balancer_controller_role_arn" {
 
 ---
 
-## 📋 Timeline:
+## 📋 Timeline
 
 | Time | Action | Who | Result |
 |------|--------|-----|--------|
@@ -164,9 +167,10 @@ output "aws_load_balancer_controller_role_arn" {
 
 ---
 
-## 🔍 Verify IAM Role Created:
+## 🔍 Verify IAM Role Created
 
 ### **Via Terraform:**
+
 ```bash
 cd terraform-eks/environments/dev
 terraform output aws_load_balancer_controller_role_arn
@@ -176,6 +180,7 @@ terraform output aws_load_balancer_controller_role_arn
 ```
 
 ### **Via AWS CLI:**
+
 ```bash
 # List IAM roles for ALB Controller
 aws iam list-roles --query 'Roles[?contains(RoleName, `load-balancer-controller`)].RoleName'
@@ -189,6 +194,7 @@ aws iam get-role --role-name my-eks-dev-aws-load-balancer-controller \
 ```
 
 ### **Via AWS Console:**
+
 ```
 IAM → Roles → Search: "my-eks-dev-aws-load-balancer-controller"
 
@@ -200,9 +206,10 @@ You'll see:
 
 ---
 
-## ⚙️ IAM Role Configuration:
+## ⚙️ IAM Role Configuration
 
 ### **Trust Policy (Who can assume this role):**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -223,12 +230,14 @@ You'll see:
 ```
 
 **Translation:**
+
 - Only pods in `kube-system` namespace
 - With ServiceAccount `aws-load-balancer-controller`
 - Can assume this IAM role
 - Authentication via EKS OIDC provider
 
 ### **Permissions Policy (What this role can do):**
+
 ```json
 {
   "Statement": [
@@ -252,14 +261,16 @@ You'll see:
 
 ---
 
-## ✅ Summary:
+## ✅ Summary
 
 **IAM Role được tạo khi:**
+
 - ✅ Chạy `terraform apply` trong `terraform-eks/environments/dev/`
 - ✅ Module `alb_controller` được execute (sau khi EKS cluster ready)
 - ✅ Tự động tạo với naming: `{cluster_name}-aws-load-balancer-controller`
 
 **Sử dụng role này khi:**
+
 - ✅ Deploy ALB Controller Helm chart (via ArgoCD hoặc Helm)
 - ✅ ServiceAccount annotation: `eks.amazonaws.com/role-arn`
 - ✅ Controller pod tự động assume role qua IRSA

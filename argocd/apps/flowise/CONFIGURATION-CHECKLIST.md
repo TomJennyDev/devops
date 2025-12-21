@@ -5,6 +5,7 @@
 ### 🔴 CRITICAL - BẮT BUỘC THAY ĐỔI
 
 #### 1. **Docker Images** (overlays/*/kustomization.yaml)
+
 ```yaml
 images:
   - name: flowise-server:latest
@@ -16,6 +17,7 @@ images:
 ```
 
 **Cách lấy ECR URL:**
+
 ```bash
 # From Terraform output
 terraform output ecr_flowise_server_url
@@ -29,6 +31,7 @@ aws ecr describe-repositories --repository-names flowise-server flowise-ui \
 ---
 
 #### 2. **Admin Credentials** (overlays/*/deployment-patch.yaml)
+
 ```yaml
 env:
   - name: FLOWISE_USERNAME
@@ -39,8 +42,10 @@ env:
 ```
 
 **Khuyến nghị:**
+
 - Dev: Password đơn giản OK
 - Production: Dùng Kubernetes Secret
+
 ```bash
 kubectl create secret generic flowise-credentials \
   -n flowise-production \
@@ -51,6 +56,7 @@ kubectl create secret generic flowise-credentials \
 ---
 
 #### 3. **Secret Key** (overlays/*/deployment-patch.yaml)
+
 ```yaml
 env:
   - name: FLOWISE_SECRETKEY_OVERWRITE
@@ -58,6 +64,7 @@ env:
 ```
 
 **Generate secret key:**
+
 ```bash
 openssl rand -hex 32
 # Output: abc123def456...
@@ -66,6 +73,7 @@ openssl rand -hex 32
 ---
 
 #### 4. **Domain Name** (overlays/*/ingress.yaml)
+
 ```yaml
 spec:
   rules:
@@ -73,11 +81,13 @@ spec:
 ```
 
 **Environments:**
+
 - Dev: `flowise-dev.do2506.click`
 - Staging: `flowise-staging.do2506.click`
 - Production: `flowise.do2506.click`
 
 **Sau khi deploy:**
+
 ```bash
 # Create DNS record
 cd scripts
@@ -89,6 +99,7 @@ bash update-dns-records.sh flowise-dev
 ### 🟡 RECOMMENDED - NÊN THAY ĐỔI
 
 #### 5. **HTTPS/SSL Certificate** (overlays/production/ingress.yaml)
+
 ```yaml
 annotations:
   # Uncomment for HTTPS
@@ -98,6 +109,7 @@ annotations:
 ```
 
 **Request ACM certificate:**
+
 ```bash
 # Request certificate
 aws acm request-certificate \
@@ -114,6 +126,7 @@ aws acm list-certificates --region ap-southeast-1 \
 ---
 
 #### 6. **GitHub Repository** (applications/flowise-*.yaml)
+
 ```yaml
 spec:
   source:
@@ -124,6 +137,7 @@ spec:
 ---
 
 #### 7. **Namespace** (applications/flowise-*.yaml)
+
 ```yaml
 spec:
   destination:
@@ -131,6 +145,7 @@ spec:
 ```
 
 **Naming convention:**
+
 - Dev: `flowise-dev`
 - Staging: `flowise-staging`
 - Production: `flowise-production`
@@ -138,6 +153,7 @@ spec:
 ---
 
 #### 8. **Resources (CPU/Memory)** (overlays/*/deployment-patch.yaml)
+
 ```yaml
 resources:
   requests:
@@ -149,6 +165,7 @@ resources:
 ```
 
 **Khuyến nghị:**
+
 - Dev: Requests thấp (100m CPU, 256Mi RAM)
 - Production: Requests cao hơn (500m CPU, 1Gi RAM)
 - Monitor và adjust theo usage thực tế
@@ -158,25 +175,28 @@ resources:
 ### 🟢 OPTIONAL - TÙY CHỌN
 
 #### 9. **Database Configuration** (base/deployment-server.yaml)
+
 ```yaml
 env:
   # PostgreSQL configuration
   - name: DATABASE_TYPE
     value: "postgres"
-  
+
   - name: DATABASE_HOST
     valueFrom:
       secretKeyRef:
         name: flowise-secrets  # ⚠️ Cần tạo Secret trước
         key: database-host
-  
+
   - name: DATABASE_NAME
     value: "flowise"  # ⚠️ THAY ĐỔI database name
 ```
 
 **Nếu dùng external database:**
+
 1. Create RDS PostgreSQL instance
 2. Create Kubernetes Secret:
+
 ```bash
 kubectl create secret generic flowise-secrets \
   -n flowise-dev \
@@ -188,12 +208,14 @@ kubectl create secret generic flowise-secrets \
 ---
 
 #### 10. **Replicas** (overlays/*/deployment-patch.yaml)
+
 ```yaml
 spec:
   replicas: 1  # ⚠️ THAY ĐỔI số replicas
 ```
 
 **Khuyến nghị:**
+
 - Dev: 1 replica
 - Staging: 2 replicas
 - Production: 3+ replicas (HA)
@@ -201,6 +223,7 @@ spec:
 ---
 
 #### 11. **ALB Name & Tags** (overlays/*/ingress.yaml)
+
 ```yaml
 annotations:
   alb.ingress.kubernetes.io/load-balancer-name: flowise-dev-alb  # ⚠️ THAY ĐỔI
@@ -211,7 +234,8 @@ annotations:
 
 ## 📝 DEPLOYMENT CHECKLIST
 
-### Before Deploy:
+### Before Deploy
+
 - [ ] Update Docker image URLs in `kustomization.yaml`
 - [ ] Change admin password in `deployment-patch.yaml`
 - [ ] Generate new secret key
@@ -221,7 +245,8 @@ annotations:
 - [ ] Update GitHub repo URL (if forked)
 - [ ] Adjust resource requests/limits
 
-### Deploy Steps:
+### Deploy Steps
+
 ```bash
 # 1. Verify Kustomize build
 kubectl kustomize argocd/flowise/overlays/dev
@@ -239,7 +264,8 @@ cd scripts && bash update-dns-records.sh flowise-dev
 curl http://flowise-dev.do2506.click
 ```
 
-### After Deploy:
+### After Deploy
+
 - [ ] Verify pods are running
 - [ ] Check ALB health checks
 - [ ] Test DNS resolution
@@ -251,7 +277,8 @@ curl http://flowise-dev.do2506.click
 
 ## 🔧 QUICK COMMANDS
 
-### Get all variables from cluster info:
+### Get all variables from cluster info
+
 ```bash
 source environments/dev/cluster-info/cluster-env.sh
 echo "Cluster: $EKS_CLUSTER_NAME"
@@ -259,7 +286,8 @@ echo "Region: $EKS_REGION"
 echo "VPC: $VPC_ID"
 ```
 
-### Generate secure passwords:
+### Generate secure passwords
+
 ```bash
 # Password (32 chars)
 openssl rand -base64 32
@@ -268,14 +296,16 @@ openssl rand -base64 32
 openssl rand -hex 32
 ```
 
-### Check Flowise pods:
+### Check Flowise pods
+
 ```bash
 kubectl get pods -n flowise-dev
 kubectl logs -n flowise-dev -l app=flowise,component=server
 kubectl logs -n flowise-dev -l app=flowise,component=ui
 ```
 
-### Get ALB URL:
+### Get ALB URL
+
 ```bash
 kubectl get ingress -n flowise-dev flowise-ingress \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'

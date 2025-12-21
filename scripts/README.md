@@ -23,7 +23,7 @@ bash scripts/export-cluster-info.sh
 
 # 2. Deploy AWS Load Balancer Controller (REQUIRED for ArgoCD Ingress)
 #    See "AWS Load Balancer Controller Deployment" section below for details
-#    
+#  
 #    Option A: Via Terraform (recommended)
 cd terraform-eks/environments/dev
 terraform apply  # If ALB module is enabled
@@ -72,6 +72,7 @@ There are **2 ways** to deploy ALB Controller depending on timing:
 **Use when:** Setting up infrastructure for the first time
 
 **Option A: Via Helm (Manual)**
+
 ```bash
 helm repo add eks https://aws.github.io/eks-charts
 helm repo update
@@ -86,6 +87,7 @@ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
 ```
 
 **Option B: Via Terraform**
+
 ```bash
 cd terraform-eks/environments/dev
 terraform apply -target=module.alb_controller
@@ -95,16 +97,18 @@ terraform apply -target=module.alb_controller
 
 ---
 
-### Method 2: GitOps Management (AFTER ArgoCD) 
+### Method 2: GitOps Management (AFTER ArgoCD)
 
 **Use when:** Managing ALB Controller via ArgoCD after initial setup
 
 **Via dedicated script:**
+
 ```bash
 bash scripts/deploy-alb-controller.sh
 ```
 
 **Via Infrastructure App-of-Apps:**
+
 ```bash
 bash scripts/deploy-infrastructure.sh dev
 # Deploys: ALB Controller + Prometheus together
@@ -121,6 +125,7 @@ bash scripts/deploy-infrastructure.sh dev
 Export Terraform outputs to multiple formats for ArgoCD and other tools.
 
 **Usage:**
+
 ```bash
 bash scripts/export-cluster-info.sh
 ```
@@ -128,6 +133,7 @@ bash scripts/export-cluster-info.sh
 **Output Location:** `environments/dev/cluster-info/`
 
 **Generated Files:**
+
 - `terraform-outputs.json` - Raw Terraform outputs
 - `cluster-info.yaml` - Structured cluster information
 - `cluster-env.sh` - Environment variables
@@ -142,16 +148,19 @@ bash scripts/export-cluster-info.sh
 Automated ArgoCD deployment on EKS cluster using Helm.
 
 **Prerequisites:**
+
 - Run `export-cluster-info.sh` first
 - kubectl configured for EKS cluster
 - Helm 3 installed
 
 **Usage:**
+
 ```bash
 bash scripts/deploy-argocd.sh
 ```
 
 **What it does:**
+
 1. Verify prerequisites (kubectl, helm)
 2. Check/Install cert-manager
 3. Create ArgoCD namespace
@@ -161,6 +170,7 @@ bash scripts/deploy-argocd.sh
 7. Display next steps
 
 **Output:**
+
 - ArgoCD URL
 - Admin credentials
 - ALB DNS
@@ -173,11 +183,13 @@ bash scripts/deploy-argocd.sh
 Update Route53 DNS records to point to ArgoCD ALB.
 
 **Usage:**
+
 ```bash
 bash scripts/update-dns-records.sh
 ```
 
 **What it does:**
+
 - Get ALB DNS from ArgoCD ingress
 - Update Route53 A record (ALIAS)
 - Verify DNS propagation
@@ -189,12 +201,14 @@ bash scripts/update-dns-records.sh
 Generate ArgoCD authentication token for API access and GitHub Actions.
 
 **Usage:**
+
 ```bash
 bash scripts/get-argocd-token.sh
 source ~/.argocd-credentials.env
 ```
 
 **Output:**
+
 - `~/.argocd-credentials.env` - Environment variables file
 - Exports: `ARGOCD_SERVER`, `ARGOCD_AUTH_TOKEN`
 
@@ -205,17 +219,20 @@ source ~/.argocd-credentials.env
 Deploy ArgoCD Projects for RBAC (must run after ArgoCD deployment).
 
 **Usage:**
+
 ```bash
 bash scripts/deploy-projects.sh
 ```
 
 **What it does:**
+
 1. Verify ArgoCD is installed
 2. Deploy Infrastructure Project
 3. Deploy Applications Project
 4. Verify deployment
 
 **Projects Created:**
+
 - `infrastructure` - System components (ALB, Prometheus)
 - `applications` - Business apps (Flowise)
 
@@ -226,6 +243,7 @@ bash scripts/deploy-projects.sh
 Deploy Infrastructure App-of-Apps (ALB Controller + Prometheus).
 
 **Usage:**
+
 ```bash
 bash scripts/deploy-infrastructure.sh [env]
 
@@ -236,6 +254,7 @@ bash scripts/deploy-infrastructure.sh prod
 ```
 
 **What it deploys:**
+
 - AWS Load Balancer Controller (kube-system namespace)
 - Prometheus + Grafana Stack (monitoring namespace)
 
@@ -248,6 +267,7 @@ bash scripts/deploy-infrastructure.sh prod
 Deploy Flowise application to specific environment.
 
 **Usage:**
+
 ```bash
 bash scripts/deploy-flowise.sh [env]
 
@@ -258,6 +278,7 @@ bash scripts/deploy-flowise.sh production
 ```
 
 **What it deploys:**
+
 - Flowise Server (Backend API)
 - Flowise UI (Frontend)
 - PostgreSQL Database (PVC)
@@ -275,11 +296,13 @@ Remove ArgoCD and all deployed resources completely.
 **⚠️  WARNING:** This will delete all applications and data!
 
 **Usage:**
+
 ```bash
 bash scripts/remove-argocd.sh
 ```
 
 **What it removes:**
+
 - All ArgoCD applications
 - ArgoCD Projects
 - ArgoCD namespace
@@ -287,6 +310,7 @@ bash scripts/remove-argocd.sh
 - Local credentials
 
 **What it keeps:**
+
 - EKS Cluster
 - cert-manager (optional)
 - ALB Controller (in kube-system)
@@ -302,15 +326,18 @@ Deploy AWS Load Balancer Controller via ArgoCD GitOps.
 **NOT for:** Initial ALB deployment before ArgoCD (use Helm/Terraform instead)
 
 **Prerequisites:**
+
 - ArgoCD must be running
 - ArgoCD Projects deployed
 
 **Usage:**
+
 ```bash
 bash scripts/deploy-alb-controller.sh
 ```
 
 **When to use:**
+
 - Managing ALB Controller via GitOps after initial setup
 - Updating ALB Controller configuration through ArgoCD
 - Alternative to `deploy-infrastructure.sh` (which deploys ALB + Prometheus together)
@@ -322,6 +349,7 @@ bash scripts/deploy-alb-controller.sh
 Update ALB Controller configuration with cluster-specific values.
 
 **Usage:**
+
 ```bash
 bash scripts/update-alb-controller-config.sh [env]
 
@@ -488,27 +516,31 @@ bash scripts/deploy-projects.sh
 
 ## 📚 Additional Resources
 
-- **ArgoCD Documentation:** https://argo-cd.readthedocs.io/
+- **ArgoCD Documentation:** <https://argo-cd.readthedocs.io/>
 - **Project Architecture:** `argocd/docs/ARCHITECTURE.md`
 - **Getting Started:** `argocd/docs/GETTING-STARTED.md`
 - **Configuration Guide:** `argocd/apps/flowise/CONFIGURATION-CHECKLIST.md`
 
 ---
+
 ```bash
 cd terraform-eks/scripts
 ./test-environment.sh
 ```
 
 ### 4. `validate-all.sh`
+
 Validate Terraform configuration before apply.
 
 **Usage:**
+
 ```bash
 cd terraform-eks/scripts
 ./validate-all.sh
 ```
 
 ### 5. `install-argocd.sh` (Deprecated)
+
 Legacy ArgoCD installation script. Use `deploy-argocd.sh` instead.
 
 ## Typical Workflow
@@ -570,18 +602,21 @@ echo $ECR_FLOWISE_SERVER
 ## Troubleshooting
 
 ### Script not found
+
 ```bash
 # Make sure you're in the scripts directory
 cd terraform-eks/scripts
 ```
 
 ### Permission denied
+
 ```bash
 # Make scripts executable
 chmod +x *.sh
 ```
 
 ### Cluster info not found
+
 ```bash
 # Run export first
 ./export-cluster-info.sh
@@ -591,6 +626,7 @@ chmod +x *.sh
 ```
 
 ### Cannot access cluster
+
 ```bash
 # Configure kubectl
 aws eks update-kubeconfig --region ap-southeast-1 --name my-eks-dev

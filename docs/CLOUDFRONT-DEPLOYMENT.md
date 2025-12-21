@@ -122,6 +122,7 @@ terraform apply
 ```
 
 Expected output:
+
 ```
 module.cloudfront.aws_cloudfront_distribution.main[0]: Creating...
 module.cloudfront.aws_cloudfront_distribution.main[0]: Still creating... [10s elapsed]
@@ -152,18 +153,21 @@ curl -I https://cdn-dev.do2506.click
 The CloudFront module includes optimized cache behaviors:
 
 ### 1. Static Assets (High Cache)
+
 - **Paths**: `/static/*`, `*.css`, `*.js`, `*.png`, `*.jpg`, `*.svg`, `*.woff`, `*.woff2`
 - **TTL**: Min 3600s (1h), Default 86400s (24h), Max 31536000s (365d)
 - **Compression**: Gzip, Brotli
 - **Methods**: GET, HEAD, OPTIONS
 
 ### 2. API Endpoints (No Cache)
+
 - **Paths**: `/api/*`
 - **TTL**: Min 0s, Default 0s, Max 0s (no caching)
 - **Methods**: GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE
 - **Forward**: All headers, query strings, cookies
 
 ### 3. Default Behavior (Medium Cache)
+
 - **Path**: `/*` (everything else)
 - **TTL**: Min 0s, Default 3600s (1h), Max 86400s (24h)
 - **Methods**: GET, HEAD, OPTIONS
@@ -187,11 +191,13 @@ To ensure traffic comes only from CloudFront (not directly to ALB):
 ### Option 1: Custom Header (Recommended)
 
 CloudFront sends a custom header to ALB:
+
 ```
 X-Custom-Origin-Verify: random-secret-string-12345
 ```
 
 Update ALB Ingress to verify this header:
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -206,6 +212,7 @@ metadata:
 ### Option 2: AWS WAF (Advanced)
 
 Use AWS WAF to allow only CloudFront IPs:
+
 ```bash
 # Create WAF Web ACL
 aws wafv2 create-web-acl --name cloudfront-origin-waf --region us-east-1 ...
@@ -323,6 +330,7 @@ Costs:
 **Cause**: ACM certificate not validated or incorrect domain
 
 **Solution**:
+
 ```bash
 # Check certificate status
 aws acm describe-certificate \
@@ -337,6 +345,7 @@ aws acm describe-certificate \
 **Cause**: Origin (ALB) is unhealthy or unreachable
 
 **Solution**:
+
 ```bash
 # Check ALB health
 kubectl get ingress -n flowise
@@ -353,6 +362,7 @@ aws elbv2 describe-target-health --target-group-arn ARN
 **Cause**: Cache-Control headers from origin
 
 **Solution**:
+
 - Check response headers: `curl -I https://your-domain.com`
 - Verify cache behaviors in CloudFront
 - Check CloudWatch `CacheHitRate` metric
@@ -362,6 +372,7 @@ aws elbv2 describe-target-health --target-group-arn ARN
 **Cause**: All requests going to origin (cache misses)
 
 **Solution**:
+
 - Review cache behaviors and TTLs
 - Check if `Cache-Control: no-cache` is set by origin
 - Verify query string/cookie forwarding settings
@@ -403,17 +414,18 @@ Add custom logic at edge:
 function handler(event) {
     var request = event.request;
     var uri = request.uri;
-    
+
     // Redirect /old-path to /new-path
     if (uri === '/old-path') {
         request.uri = '/new-path';
     }
-    
+
     return request;
 }
 ```
 
 Deploy function:
+
 ```bash
 aws cloudfront create-function \
   --name url-rewrite \
@@ -422,6 +434,7 @@ aws cloudfront create-function \
 ```
 
 Enable in terraform:
+
 ```hcl
 cloudfront_enable_url_rewrite = true
 cloudfront_function_arn       = "arn:aws:cloudfront::ACCOUNT:function/url-rewrite"

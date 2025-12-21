@@ -2,9 +2,10 @@
 
 Hướng dẫn này dành cho **người mới bắt đầu** muốn deploy Prometheus + Grafana monitoring stack lên EKS cluster bằng ArgoCD.
 
-## 📖 Đọc theo thứ tự này:
+## 📖 Đọc theo thứ tự này
 
 ### Bước 1: Hiểu cơ bản (15 phút đọc)
+
 ```
 1. Đọc file này (GETTING-STARTED.md) ← BẠN ĐANG Ở ĐÂY
 2. Đọc PROMETHEUS-README.md (overview về stack)
@@ -12,6 +13,7 @@ Hướng dẫn này dành cho **người mới bắt đầu** muốn deploy Prom
 ```
 
 ### Bước 2: Chuẩn bị môi trường (30 phút)
+
 ```
 4. Cài đặt tools cần thiết
 5. Verify cluster access
@@ -19,6 +21,7 @@ Hướng dẫn này dành cho **người mới bắt đầu** muốn deploy Prom
 ```
 
 ### Bước 3: Deploy monitoring stack (15 phút)
+
 ```
 7. Deploy Prometheus + Grafana
 8. Verify deployment
@@ -151,6 +154,7 @@ kubectl get namespaces
 ```
 
 **Nếu không kết nối được:**
+
 ```bash
 # Update kubeconfig cho EKS
 aws eks update-kubeconfig --region ap-southeast-1 --name my-eks-dev
@@ -227,6 +231,7 @@ kubectl get pods -n monitoring
 ```
 
 **Nếu pods không ready:**
+
 ```bash
 # Xem logs để debug
 kubectl logs -n monitoring prometheus-kube-prometheus-prometheus-0 -c prometheus
@@ -418,7 +423,7 @@ kubectl get servicemonitors -n monitoring
 
 ## 📚 Học thêm
 
-### Đọc tiếp theo:
+### Đọc tiếp theo
 
 1. **PROMETHEUS-README.md**
    - Chi tiết về các components
@@ -436,18 +441,18 @@ kubectl get servicemonitors -n monitoring
    - API references
    - Best practices links
 
-### Official Documentation:
+### Official Documentation
 
-- **ArgoCD**: https://argo-cd.readthedocs.io/en/stable/getting_started/
-- **Prometheus**: https://prometheus.io/docs/prometheus/latest/getting_started/
-- **Grafana**: https://grafana.com/docs/grafana/latest/getting-started/
-- **Kustomize**: https://kubectl.docs.kubernetes.io/guides/introduction/kustomize/
+- **ArgoCD**: <https://argo-cd.readthedocs.io/en/stable/getting_started/>
+- **Prometheus**: <https://prometheus.io/docs/prometheus/latest/getting_started/>
+- **Grafana**: <https://grafana.com/docs/grafana/latest/getting-started/>
+- **Kustomize**: <https://kubectl.docs.kubernetes.io/guides/introduction/kustomize/>
 
-### Video Tutorials:
+### Video Tutorials
 
-- **ArgoCD Tutorial**: https://www.youtube.com/results?search_query=argocd+tutorial
-- **Prometheus Monitoring**: https://www.youtube.com/results?search_query=prometheus+kubernetes
-- **Grafana Dashboards**: https://www.youtube.com/results?search_query=grafana+kubernetes+dashboard
+- **ArgoCD Tutorial**: <https://www.youtube.com/results?search_query=argocd+tutorial>
+- **Prometheus Monitoring**: <https://www.youtube.com/results?search_query=prometheus+kubernetes>
+- **Grafana Dashboards**: <https://www.youtube.com/results?search_query=grafana+kubernetes+dashboard>
 
 ---
 
@@ -469,7 +474,7 @@ Sau khi làm xong guide này, bạn nên có:
 
 ## 🎓 Next Steps
 
-### Deploy sang Staging/Prod:
+### Deploy sang Staging/Prod
 
 ```bash
 # Staging
@@ -480,22 +485,22 @@ kubectl apply -f app-of-apps-kustomize-prod.yaml
 argocd app sync system-apps-prod-kustomize  # Manual sync
 ```
 
-### Thêm Custom Dashboards:
+### Thêm Custom Dashboards
 
 1. Vào Grafana → Dashboards → Import
-2. Paste Grafana dashboard ID từ: https://grafana.com/grafana/dashboards/
+2. Paste Grafana dashboard ID từ: <https://grafana.com/grafana/dashboards/>
 3. Recommended dashboards:
    - **1860** - Node Exporter Full
    - **6417** - Kubernetes Cluster Monitoring
    - **315** - Kubernetes Cluster Monitoring (via Prometheus)
 
-### Setup Alerts:
+### Setup Alerts
 
 - Edit `alertmanager.config` trong values files
 - Add Slack/Email receivers
 - Test alerts
 
-### Add More Applications:
+### Add More Applications
 
 - Copy `prometheus/` structure
 - Create new app folders
@@ -504,6 +509,7 @@ argocd app sync system-apps-prod-kustomize  # Manual sync
 ---
 
 **Cần help?** Tham khảo:
+
 - File PROMETHEUS-README.md (troubleshooting section)
 - Official docs trong SOURCES.md
 - GitHub issues của các projects

@@ -14,7 +14,7 @@ prometheus:
     # Retention & Storage
     retention: 15d  # Staging: 15 days retention
     retentionSize: "20GB"
-    
+
     # Resources - Staging: Medium resources
     resources:
       requests:
@@ -23,7 +23,7 @@ prometheus:
       limits:
         cpu: 1000m
         memory: 4Gi
-    
+
     # Storage
     storageSpec:
       volumeClaimTemplate:
@@ -33,16 +33,16 @@ prometheus:
             requests:
               storage: 50Gi  # Staging: 50GB storage
           storageClassName: gp3
-    
+
     # Scrape interval
     scrapeInterval: 30s
     evaluationInterval: 30s
-    
+
     # Service Monitor selectors
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
-    
+
     # Replicas - HA
     replicas: 2  # Staging: 2 replicas for HA
 
@@ -51,10 +51,10 @@ prometheus:
 # ========================================
 grafana:
   enabled: true
-  
+
   # Admin credentials
   adminPassword: "changeme-staging"  # Use Sealed Secrets in real env
-  
+
   # Resources - Staging: Medium resources
   resources:
     requests:
@@ -63,18 +63,18 @@ grafana:
     limits:
       cpu: 500m
       memory: 1Gi
-  
+
   # Persistence
   persistence:
     enabled: true
     size: 10Gi  # Staging: 10GB
     storageClassName: gp3
-  
+
   # Service type
   service:
     type: ClusterIP
     port: 80
-  
+
   # Ingress with ALB (optional)
   ingress:
     enabled: false  # Set true if using ALB Controller
@@ -84,14 +84,14 @@ grafana:
       alb.ingress.kubernetes.io/target-type: ip
     hosts:
       - grafana-staging.internal.example.com
-  
+
   # Default dashboards
   defaultDashboardsEnabled: true
   defaultDashboardsTimezone: Asia/Singapore
-  
+
   # Replicas
   replicas: 2  # Staging: 2 replicas for HA
-  
+
   # Grafana config
   grafana.ini:
     server:
@@ -106,7 +106,7 @@ grafana:
 # ========================================
 alertmanager:
   enabled: true
-  
+
   alertmanagerSpec:
     # Resources - Staging: Medium
     resources:
@@ -116,7 +116,7 @@ alertmanager:
       limits:
         cpu: 200m
         memory: 512Mi
-    
+
     # Storage
     storage:
       volumeClaimTemplate:
@@ -126,9 +126,9 @@ alertmanager:
             requests:
               storage: 10Gi
           storageClassName: gp3
-    
+
     replicas: 2  # Staging: 2 replicas for HA
-  
+
   # Alert configuration
   config:
     global:
@@ -159,7 +159,7 @@ alertmanager:
 # ========================================
 nodeExporter:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 100m
@@ -173,7 +173,7 @@ nodeExporter:
 # ========================================
 kubeStateMetrics:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 100m
@@ -187,7 +187,7 @@ kubeStateMetrics:
 # ========================================
 prometheusOperator:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 200m
@@ -195,7 +195,7 @@ prometheusOperator:
     limits:
       cpu: 400m
       memory: 512Mi
-  
+
   admissionWebhooks:
     enabled: true
     patch:

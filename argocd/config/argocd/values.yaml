@@ -60,11 +60,11 @@ configs:
     # ⚠️ CRITICAL: Enable for GitHub Actions gRPC-web support
     server.insecure: "true"  # Required for argocd CLI login --insecure
     server.enable.gzip: "true"
-    
+
     # Timeout settings for application reconciliation
     timeout.reconciliation: "180s"
     timeout.hard.reconciliation: "0"
-    
+
     # Application instance label
     application.instanceLabelKey: "argocd.argoproj.io/instance"
 
@@ -72,10 +72,10 @@ configs:
   cm:
     # Repository refresh timeout
     timeout.reconciliation: "180s"
-    
+
     # Enable status badge
     statusbadge.enabled: "true"
-    
+
     # Resource exclusions
     resource.exclusions: |
       - apiGroups:
@@ -89,10 +89,10 @@ configs:
   rbac:
     # Default role for new users
     policy.default: "role:readonly"
-    
+
     # Enable API key generation scopes
     scopes: "[accounts:apiKey]"
-    
+
     # -- Policy CSV for defining custom roles and permissions
     policy.csv: |
       # Admin role - full access
@@ -103,7 +103,7 @@ configs:
       p, role:admin, accounts, *, *, allow
       p, role:admin, gpgkeys, *, *, allow
       p, role:admin, certificates, *, *, allow
-      
+
       # ⚠️ CI/CD role - for GitHub Actions
       p, role:cicd, applications, get, */*, allow
       p, role:cicd, applications, sync, */*, allow
@@ -114,13 +114,13 @@ configs:
       p, role:cicd, repositories, get, *, allow
       p, role:cicd, repositories, list, *, allow
       p, role:cicd, repositories, update, *, allow
-      
+
       # ReadOnly role
       p, role:readonly, applications, get, */*, allow
       p, role:readonly, repositories, get, *, allow
       p, role:readonly, clusters, get, *, allow
       p, role:readonly, projects, get, *, allow
-      
+
       # Bind admin user to admin role
       g, admin, role:admin
 
@@ -128,7 +128,7 @@ configs:
   secret:
     # Create the secret resource from the following data
     createSecret: true
-    
+
     # -- Bcrypt hashed admin password
     # 📝 BIẾN ĐỘNG: ⚠️ BẮT BUỘC đổi cho production!
     # Hiện tại: Comment out để dùng auto-generated password
@@ -136,7 +136,7 @@ configs:
     #   htpasswd -nbBC 10 "" YOUR_STRONG_PASSWORD | tr -d ':\n' | sed 's/$2y/$2a/'
     # Sau đó uncomment và paste hash vào giá trị argocdServerAdminPassword bên dưới
     # argocdServerAdminPassword: "$2a$10$..."  # ⚠️ ĐỔI PASSWORD CHO PRODUCTION
-    
+
     # GitHub/GitLab webhook secret (optional)
     # githubSecret: ""
     # gitlabSecret: ""
@@ -151,7 +151,7 @@ server:
   # Phù hợp với: 2-node cluster
   # Giảm xuống 1 nếu: Chỉ có 1 node hoặc muốn tiết kiệm resources
   replicas: 2  # HA: 2 replicas
-  
+
   # Pod Anti-Affinity: Spread across nodes
   affinity:
     podAntiAffinity:
@@ -162,7 +162,7 @@ server:
             matchLabels:
               app.kubernetes.io/name: argocd-server
           topologyKey: kubernetes.io/hostname
-  
+
   # Topology Spread
   topologySpreadConstraints:
   - maxSkew: 1
@@ -181,13 +181,13 @@ server:
   ingress:
     enabled: true
     ingressClassName: alb
-    
+
     annotations:
       # ALB Configuration
       alb.ingress.kubernetes.io/scheme: internet-facing
       alb.ingress.kubernetes.io/target-type: ip
       alb.ingress.kubernetes.io/backend-protocol: HTTP
-      
+
       # SSL/TLS Configuration
       # 📝 BIẾN ĐỘNG: Certificate ARN cho HTTPS
       # Hiện tại: Certificate đã issued cho argocd.do2506.click
@@ -198,7 +198,7 @@ server:
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
       alb.ingress.kubernetes.io/ssl-redirect: '443'
       alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
-      
+
       # Health Check
       alb.ingress.kubernetes.io/healthcheck-path: /
       alb.ingress.kubernetes.io/healthcheck-port: traffic-port
@@ -207,18 +207,18 @@ server:
       alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
       alb.ingress.kubernetes.io/healthy-threshold-count: '2'
       alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
-      
+
       # Additional Settings
       alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=300
       alb.ingress.kubernetes.io/tags: Environment=production,Application=argocd,ManagedBy=helm
-    
+
     # 📝 BIẾN ĐỘNG: Hostname phải khớp với domain và certificate ARN
     # Hiện tại: argocd.do2506.click
     # Thay đổi: Cả 2 chỗ bên dưới phải giống nhau
     # Sau khi deploy: Tạo Route53 A record pointing to ALB
     hosts:
       - argocd.do2506.click  # ⚠️ THAY ĐỔI
-    
+
     tls:
       - secretName: argocd-tls
         hosts:
@@ -260,7 +260,7 @@ repoServer:
   # Repo server xử lý Git operations và Helm chart rendering
   # Giảm xuống 1 nếu: Ít applications hoặc muốn tiết kiệm resources
   replicas: 2  # HA: 2 replicas
-  
+
   # Pod Anti-Affinity: Spread across nodes
   affinity:
     podAntiAffinity:
@@ -271,7 +271,7 @@ repoServer:
             matchLabels:
               app.kubernetes.io/name: argocd-repo-server
           topologyKey: kubernetes.io/hostname
-  
+
   # Topology Spread
   topologySpreadConstraints:
   - maxSkew: 1
@@ -313,7 +313,7 @@ repoServer:
 controller:
   # -- Number of replicas for the controller
   replicas: 1  # Single replica (stateful, can't scale horizontally)
-  
+
   # Resource limits (updated for 2-node cluster)
   # 📝 BIẾN ĐỘNG: Có thể adjust dựa trên số lượng applications
   # Hiện tại: 500m CPU / 1Gi memory (phù hợp cho < 10 apps)
@@ -352,7 +352,7 @@ dex:
 ## ============================================
 redis:
   enabled: true
-  
+
   # Resource limits
   resources:
     limits:
@@ -396,7 +396,7 @@ externalRedis:
 applicationSet:
   enabled: true
   replicas: 1
-  
+
   # Resource limits
   resources:
     limits:

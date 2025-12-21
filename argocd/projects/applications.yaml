@@ -7,12 +7,12 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   description: Business applications (Flowise, web apps, microservices, etc.)
-  
+
   # Source repositories
   sourceRepos:
     - 'https://github.com/TomJennyDev/devops.git'
     - '*'  # Allow any Helm chart repository
-  
+
   # Destination clusters and namespaces
   destinations:
     - namespace: 'flowise-*'
@@ -21,12 +21,12 @@ spec:
       server: 'https://kubernetes.default.svc'
     - namespace: 'default'
       server: 'https://kubernetes.default.svc'
-  
+
   # Allowed cluster resources (more restrictive than infrastructure)
   clusterResourceWhitelist:
     - group: ''
       kind: 'Namespace'
-  
+
   # Namespace resources allowed
   namespaceResourceWhitelist:
     - group: 'apps'
@@ -47,7 +47,7 @@ spec:
       kind: 'HorizontalPodAutoscaler'
     - group: 'monitoring.coreos.com'
       kind: 'ServiceMonitor'
-  
+
   # Roles for RBAC
   roles:
     - name: app-admin
@@ -57,7 +57,7 @@ spec:
       groups:
         - app-team
         - devops-team
-    
+
     - name: app-developer
       description: Developer access (deploy, sync, refresh)
       policies:
@@ -65,7 +65,7 @@ spec:
         - p, proj:applications:app-developer, applications, sync, applications/*, allow
       groups:
         - developers
-    
+
     - name: app-readonly
       description: Read-only access
       policies:

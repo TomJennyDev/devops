@@ -25,21 +25,21 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: infrastructure
-  
+
   sources:
     # AWS Load Balancer Controller
     - repoURL: https://github.com/TomJennyDev/devops.git
       targetRevision: main
       path: argocd/infrastructure/aws-load-balancer-controller/overlays/staging
-    
+
     # Prometheus + Grafana Stack
     - repoURL: https://github.com/TomJennyDev/devops.git
       targetRevision: main
       path: argocd/infrastructure/prometheus/overlays/staging
-  
+
   destination:
     server: https://kubernetes.default.svc
-  
+
   syncPolicy:
     automated:
       prune: true

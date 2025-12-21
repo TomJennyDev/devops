@@ -1,10 +1,15 @@
 # ========================================
+
 # RESOURCE CONFLICT ANALYSIS
+
 # ========================================
+
 # Date: 2025-12-08
+
 # Environment: DEV
 
 ## 📊 Node Capacity (t3.medium)
+
 - **CPU**: 2 vCPUs (2000m)
 - **Memory**: 4GB (4096Mi)
 - **System Reserved**: ~300m CPU, ~512Mi RAM
@@ -15,6 +20,7 @@
 ## 🔍 Current Service Resources
 
 ### 1. ArgoCD (namespace: argocd)
+
 ```yaml
 Server:
   requests: 250m CPU, 256Mi RAM
@@ -34,6 +40,7 @@ Total ArgoCD:
 ```
 
 ### 2. Prometheus Stack (namespace: monitoring)
+
 ```yaml
 Prometheus Server:
   requests: 150m CPU, 512Mi RAM
@@ -57,6 +64,7 @@ Total Monitoring:
 ```
 
 ### 3. System Pods (kube-system)
+
 ```yaml
 CoreDNS (2 replicas):
   requests: ~200m CPU, ~140Mi RAM
@@ -77,9 +85,10 @@ Total System:
 
 ---
 
-## ⚠️ RESOURCE CONFLICT DETECTED!
+## ⚠️ RESOURCE CONFLICT DETECTED
 
-### Total Requests (minimum needed):
+### Total Requests (minimum needed)
+
 ```
 ArgoCD:     1000m CPU + 1024Mi RAM
 Monitoring:  350m CPU + 1000Mi RAM
@@ -88,7 +97,8 @@ System:      400m CPU +  400Mi RAM
 TOTAL:      1750m CPU + 2424Mi RAM
 ```
 
-### Total Limits (maximum burst):
+### Total Limits (maximum burst)
+
 ```
 ArgoCD:     2000m CPU + 2560Mi RAM
 Monitoring:  800m CPU + 2000Mi RAM
@@ -97,13 +107,14 @@ System:      800m CPU +  800Mi RAM
 TOTAL:      3600m CPU + 5360Mi RAM
 ```
 
-### Node Capacity:
+### Node Capacity
+
 ```
 Available:  1700m CPU + 3584Mi RAM
 Required:   1750m CPU + 2424Mi RAM
 ```
 
-## 🚨 CONFLICTS:
+## 🚨 CONFLICTS
 
 1. **CPU Requests**: 1750m > 1700m (OVER by 50m)
    - ❌ Not enough CPU to schedule all pods!
@@ -122,61 +133,63 @@ Required:   1750m CPU + 2424Mi RAM
 ## 🎯 RECOMMENDATIONS
 
 ### Option 1: Reduce ResourceQuota (Recommended for Dev)
+
 ```hcl
 # terraform-eks/environments/dev/terraform.tfvars
 
 resource_quotas = {
   default = {
     namespace = "default"
-    
+
     # REDUCED - Allow more headroom
     requests_cpu    = "500m"    # Was: 2000m
     requests_memory = "1Gi"     # Was: 4Gi
     limits_cpu      = "1000m"   # Was: 4000m
     limits_memory   = "2Gi"     # Was: 8Gi
-    
+
     max_pods     = 10           # Was: 20
     max_services = 5            # Was: 10
     max_pvcs     = 3            # Was: 5
-    
+
     requests_storage = "20Gi"   # Was: 50Gi
   }
-  
+
   argocd = {
     namespace = "argocd"
-    
+
     # REALISTIC - Match actual usage
     requests_cpu    = "1200m"   # Was: 3000m
     requests_memory = "1500Mi"  # Was: 6Gi
     limits_cpu      = "2500m"   # Was: 6000m
     limits_memory   = "3Gi"     # Was: 12Gi
-    
+
     max_pods     = 15
     max_services = 10
     max_pvcs     = 3
-    
+
     requests_storage = "20Gi"
   }
-  
+
   # ADD monitoring namespace
   monitoring = {
     namespace = "monitoring"
-    
+
     requests_cpu    = "500m"
     requests_memory = "1500Mi"
     limits_cpu      = "1000m"
     limits_memory   = "2500Mi"
-    
+
     max_pods     = 20
     max_services = 10
     max_pvcs     = 5
-    
+
     requests_storage = "50Gi"
   }
 }
 ```
 
 ### Option 2: Scale Up Node (More Expensive)
+
 ```hcl
 # Switch to t3.large for more resources
 node_group_instance_types = ["t3.large"]
@@ -185,6 +198,7 @@ node_group_instance_types = ["t3.large"]
 ```
 
 ### Option 3: Reduce Service Resources
+
 ```yaml
 # argocd-values.yaml - Reduce ArgoCD resources
 controller:
@@ -209,6 +223,7 @@ prometheus:
 ```
 
 ### Option 4: Vertical Pod Autoscaler (Advanced)
+
 ```hcl
 # Enable VPA to auto-adjust resources
 enable_vpa = true
@@ -218,7 +233,8 @@ enable_vpa = true
 
 ## 📊 Revised Calculation (Option 1)
 
-### After reducing quotas:
+### After reducing quotas
+
 ```
 Available Node:  1700m CPU, 3584Mi RAM
 
@@ -236,6 +252,7 @@ Status:
 ```
 
 ### Best Solution: Combination
+
 ```hcl
 # 1. Reduce default namespace quota
 default = {
@@ -255,7 +272,8 @@ monitoring = {
 }
 ```
 
-### Final Calculation:
+### Final Calculation
+
 ```
 Available:    1700m CPU, 3584Mi RAM
 Reserved:
@@ -298,7 +316,7 @@ resource_quotas = {
     requests_memory = "512Mi"
     max_pods = 10
   }
-  
+
   argocd = {
     requests_cpu = "1000m"
     requests_memory = "1Gi"
@@ -308,6 +326,7 @@ resource_quotas = {
 ```
 
 **This gives you:**
+
 ```
 System:    400m CPU,  400Mi RAM
 ArgoCD:   1000m CPU, 1000Mi RAM

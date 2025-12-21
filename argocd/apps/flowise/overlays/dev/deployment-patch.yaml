@@ -12,43 +12,43 @@ spec:
         # Override base env vars for dev
         - name: LOG_LEVEL
           value: "debug"
-        
+
         - name: DEBUG
           value: "true"
-        
+
         # 📝 BIẾN ĐỘNG: Dev password
         # Hiện tại: dev123 (CHỈ dùng cho dev/testing)
         # ⚠️ Staging/Production: Dùng Secret từ Kubernetes
         - name: FLOWISE_PASSWORD
           value: "dev123"
-        
+
         # 📝 BIẾN ĐỘNG: Dev secret key
         # Hiện tại: dev-secret-key-change-in-prod
         # ⚠️ BẮT BUỘC đổi cho mỗi environment
         # Generate: openssl rand -hex 32
         - name: FLOWISE_SECRETKEY_OVERWRITE
           value: "dev-secret-key-change-in-prod"
-        
+
         - name: CORS_ORIGINS
           value: "*"  # Allow all origins in dev
-        
+
         # Prometheus Metrics Configuration
         - name: ENABLE_METRICS
           value: "true"
-        
+
         - name: METRICS_PROVIDER
           value: "prometheus"
-        
+
         - name: METRICS_INCLUDE_NODE_METRICS
           value: "true"
-        
+
         # Add dev-specific env from ConfigMap
         - name: ENVIRONMENT
           valueFrom:
             configMapKeyRef:
               name: flowise-env
               key: ENVIRONMENT
-        
+
         resources:
           requests:
             cpu: 200m
@@ -71,10 +71,10 @@ spec:
         # Override for dev
         - name: VITE_PUBLIC_API_URL
           value: "https://flowise-dev.do2506.click/api"
-        
+
         - name: VITE_ENABLE_ANALYTICS
           value: "false"
-        
+
         resources:
           requests:
             cpu: 50m

@@ -92,11 +92,11 @@ echo "Waiting for ALB to be provisioned..."
 for i in {1..36}; do
     ALB_HOSTNAME=$(kubectl get ingress "$INGRESS_NAME" -n "$NAMESPACE" \
         -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-    
+
     if [ ! -z "$ALB_HOSTNAME" ]; then
         break
     fi
-    
+
     echo -n "."
     sleep 5
 done

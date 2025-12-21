@@ -9,15 +9,15 @@ spec:
         clusterName: my-eks-dev
         region: ap-southeast-1
         vpcId: vpc-0e6ca42c7851c46c4
-        
+
         serviceAccount:
           create: false
           name: aws-load-balancer-controller
           annotations:
             eks.amazonaws.com/role-arn: arn:aws:iam::372836560690:role/my-eks-dev-aws-load-balancer-controller
-        
+
         replicaCount: 2
-        
+
         resources:
           limits:
             cpu: 500m

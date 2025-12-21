@@ -107,7 +107,7 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${GREEN}✅ ARGOCD PROJECTS DEPLOYED!${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
- 
+
 # Get project details
 echo -e "${YELLOW}📝 Project Details:${NC}"
 echo ""

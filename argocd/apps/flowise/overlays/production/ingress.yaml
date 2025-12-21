@@ -12,13 +12,13 @@ metadata:
     # ⚠️ TODO: Request ACM certificate and update ARN below
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/YOUR-CERT-ARN
     alb.ingress.kubernetes.io/healthcheck-path: /
-    
+
     # Production-specific: Enable WAF
     alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-southeast-1:372836560690:regional/webacl/flowise-prod/xxxxx
-    
+
     # Production-specific: Access logs
     alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=flowise-prod-alb-logs
-    
+
     alb.ingress.kubernetes.io/tags: Environment=production,Application=flowise,CostCenter=engineering
 spec:
   ingressClassName: alb

@@ -44,6 +44,7 @@ terraform apply
 ```
 
 **Timeline:** ~20-25 phút
+
 - VPC, IAM, Security Groups: ~2 phút
 - EKS Cluster: ~9 phút  
 - Node Groups: ~5 phút
@@ -76,6 +77,7 @@ cd ../../scripts
 ```
 
 **Output:** `environments/dev/cluster-info/`
+
 - `cluster-info.yaml` - Cluster information
 - `cluster-env.sh` - Environment variables
 - `argocd-cluster-values.yaml` - Helm values cho ArgoCD
@@ -117,6 +119,7 @@ ecr_flowise_ui_url = "372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-
 CoreDNS addon được tạo **SAU** node groups để tránh timeout 20 phút.
 
 **Thứ tự tạo:**
+
 ```
 1. EKS Cluster + VPC-CNI + Kube-proxy
 2. Node Groups (nodes ready)
@@ -132,6 +135,7 @@ CoreDNS addon được tạo **SAU** node groups để tránh timeout 20 phút.
 ### Cost Estimation
 
 **Monthly costs (dev environment):**
+
 - EKS Cluster: $73
 - 2x t3.medium: ~$60
 - NAT Gateway: ~$32

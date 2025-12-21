@@ -187,12 +187,12 @@ echo -e "${YELLOW}📋 Step 5: Waiting for DNS propagation...${NC}"
 echo "Checking Route53 change status..."
 for i in {1..12}; do
     CURRENT_STATUS=$(aws route53 get-change --id "$CHANGE_ID" --query 'ChangeInfo.Status' --output text)
-    
+
     if [ "$CURRENT_STATUS" == "INSYNC" ]; then
         echo -e "${GREEN}✅ Route53 change completed!${NC}"
         break
     fi
-    
+
     echo "Status: $CURRENT_STATUS (attempt $i/12)"
     sleep 5
 done

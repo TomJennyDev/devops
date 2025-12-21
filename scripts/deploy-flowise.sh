@@ -170,7 +170,7 @@ echo ""
 if kubectl get ingress -n flowise-$ENV &> /dev/null; then
     INGRESS_HOST=$(kubectl get ingress -n flowise-$ENV -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "flowise-$ENV.do2506.click")
     ALB_DNS=$(kubectl get ingress -n flowise-$ENV -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "<ALB provisioning...>")
-    
+
     echo "🌐 Flowise URL:   https://$INGRESS_HOST"
     echo "🔗 ALB DNS:       $ALB_DNS"
 else

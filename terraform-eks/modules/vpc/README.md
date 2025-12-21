@@ -22,7 +22,7 @@ module "vpc" {
   private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
   nat_gateway_count    = 3
   cluster_name         = "my-eks-cluster"
-  
+
   common_tags = {
     Environment = "production"
     ManagedBy   = "terraform"

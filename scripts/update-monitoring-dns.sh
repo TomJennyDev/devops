@@ -33,12 +33,12 @@ RETRY_COUNT=0
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     ALB_HOSTNAME=$(kubectl get ingress grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-    
+
     if [ -n "$ALB_HOSTNAME" ]; then
         echo -e "${GREEN}✅ ALB hostname found: $ALB_HOSTNAME${NC}"
         break
     fi
-    
+
     RETRY_COUNT=$((RETRY_COUNT + 1))
     echo "Waiting for ALB to be provisioned... (attempt $RETRY_COUNT/$MAX_RETRIES)"
     sleep 10
@@ -73,15 +73,15 @@ echo ""
 create_dns_record() {
     local SUBDOMAIN=$1
     local FULL_DOMAIN="${SUBDOMAIN}.${DOMAIN}"
-    
+
     echo -e "${YELLOW}Creating DNS record: ${FULL_DOMAIN}${NC}"
-    
+
     # Check if record exists
     EXISTING_RECORD=$(aws route53 list-resource-record-sets \
         --hosted-zone-id "$ROUTE53_ZONE_ID" \
         --query "ResourceRecordSets[?Name=='${FULL_DOMAIN}.']" \
         --output text 2>/dev/null || echo "")
-    
+
     if [ -n "$EXISTING_RECORD" ]; then
         echo "Record exists, updating..."
         ACTION="UPSERT"
@@ -89,7 +89,7 @@ create_dns_record() {
         echo "Creating new record..."
         ACTION="CREATE"
     fi
-    
+
     # Create change batch
     CHANGE_BATCH=$(cat <<EOF
 {
@@ -108,14 +108,14 @@ create_dns_record() {
 }
 EOF
 )
-    
+
     # Apply change
     CHANGE_ID=$(aws route53 change-resource-record-sets \
         --hosted-zone-id "$ROUTE53_ZONE_ID" \
         --change-batch "$CHANGE_BATCH" \
         --query 'ChangeInfo.Id' \
         --output text)
-    
+
     if [ -n "$CHANGE_ID" ]; then
         echo -e "${GREEN}✅ DNS record created/updated: ${FULL_DOMAIN}${NC}"
         echo "   Change ID: $CHANGE_ID"
@@ -123,7 +123,7 @@ EOF
         echo -e "${RED}❌ Failed to create DNS record${NC}"
         return 1
     fi
-    
+
     echo ""
 }
 
@@ -148,9 +148,9 @@ echo ""
 
 for SUBDOMAIN in "grafana-${ENV}" "prometheus-${ENV}" "alertmanager-${ENV}"; do
     FULL_DOMAIN="${SUBDOMAIN}.${DOMAIN}"
-    
+
     DNS_RESULT=$(nslookup "$FULL_DOMAIN" 2>/dev/null | grep -A 1 "Name:" | tail -1 || echo "")
-    
+
     if [ -n "$DNS_RESULT" ]; then
         echo -e "${GREEN}✅ ${FULL_DOMAIN}${NC}"
         echo "   $DNS_RESULT"

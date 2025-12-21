@@ -10,7 +10,7 @@ metadata:
     app: flowise
 spec:
   project: applications  # 📝 BIẾN ĐỘNG: ArgoCD Project (applications/infrastructure)
-  
+
   source:
     # 📝 BIẾN ĐỘNG: GitHub repository URL
     # Hiện tại: https://github.com/TomJennyDev/devops.git
@@ -18,7 +18,7 @@ spec:
     repoURL: https://github.com/TomJennyDev/devops.git
     targetRevision: main  # 📝 BIẾN ĐỘNG: Git branch (main/develop/feature-branch)
     path: argocd/apps/flowise/overlays/dev
-  
+
   destination:
     server: https://kubernetes.default.svc
     # 📝 BIẾN ĐỘNG: Kubernetes namespace
@@ -26,7 +26,7 @@ spec:
     # Staging: flowise-staging
     # Production: flowise-production
     namespace: flowise-dev
-  
+
   syncPolicy:
     automated:
       prune: true
@@ -42,7 +42,7 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-  
+
   # Health check
   ignoreDifferences:
     - group: apps

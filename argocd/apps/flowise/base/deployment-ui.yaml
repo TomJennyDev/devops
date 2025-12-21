@@ -25,7 +25,7 @@ spec:
         - name: http
           containerPort: 80
           protocol: TCP
-        
+
         # ============================================
         # ENVIRONMENT VARIABLES - UI CONFIGURATION
         # ============================================
@@ -33,22 +33,22 @@ spec:
         # Backend API endpoint
         - name: VITE_API_URL
           value: "http://flowise-server:3000"  # Internal service DNS
-        
+
         # Public API endpoint (for browser)
         - name: VITE_PUBLIC_API_URL
           value: "/api"  # Will be proxied through ingress
-        
+
         # Feature flags
         - name: VITE_ENABLE_AUTH
           value: "true"
-        
+
         - name: VITE_ENABLE_ANALYTICS
           value: "false"
-        
+
         # Branding
         - name: VITE_APP_TITLE
           value: "Flowise"
-        
+
         # Resource limits
         resources:
           requests:
@@ -57,7 +57,7 @@ spec:
           limits:
             cpu: 500m
             memory: 512Mi
-        
+
         # Health checks
         livenessProbe:
           httpGet:
@@ -67,7 +67,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         readinessProbe:
           httpGet:
             path: /

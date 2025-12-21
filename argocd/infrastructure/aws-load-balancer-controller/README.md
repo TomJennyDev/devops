@@ -31,6 +31,7 @@ aws-load-balancer-controller/
 All environment-specific configuration is centralized in **`values.yaml`** per environment.
 
 ### **Dev (`overlays/dev/values.yaml`)**
+
 ```yaml
 clusterName: my-eks-dev
 region: ap-southeast-1
@@ -40,6 +41,7 @@ replicaCount: 2
 ```
 
 ### **Staging (`overlays/staging/values.yaml`)**
+
 ```yaml
 clusterName: my-eks-staging
 vpcId: vpc-XXXXXXXXX  # Update after terraform apply
@@ -48,6 +50,7 @@ replicaCount: 2
 ```
 
 ### **Production (`overlays/production/values.yaml`)**
+
 ```yaml
 clusterName: my-eks-prod
 vpcId: vpc-XXXXXXXXX  # Update after terraform apply
@@ -60,12 +63,14 @@ replicaCount: 3  # More replicas for production
 ## 🔄 Workflow
 
 ### **1. Deploy Terraform Infrastructure**
+
 ```bash
 cd terraform-eks/environments/dev
 terraform apply
 ```
 
 ### **2. Auto-update values.yaml**
+
 ```bash
 cd /d/devops/gitops/scripts
 
@@ -80,11 +85,13 @@ cd /d/devops/gitops/scripts
 ```
 
 ### **3. Review Changes**
+
 ```bash
 git diff argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/dev/values.yaml
 ```
 
 ### **4. Commit**
+
 ```bash
 git add .
 git commit -m "Update ALB Controller values for dev from Terraform outputs"
@@ -92,6 +99,7 @@ git push
 ```
 
 ### **5. Deploy to Cluster**
+
 ```bash
 # Deploy via Kustomize
 kubectl apply -k argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/dev/
@@ -118,6 +126,7 @@ vi argocd/system-apps-kustomize/aws-load-balancer-controller/overlays/dev/values
 ```
 
 **Update these fields:**
+
 - `clusterName`: From `terraform output cluster_id`
 - `vpcId`: From `terraform output vpc_id`
 - `iamRoleArn`: From `terraform output aws_load_balancer_controller_role_arn`
@@ -143,6 +152,7 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controll
 ## 🔍 Troubleshooting
 
 ### **Issue: Values not applied**
+
 ```bash
 # Check if Kustomize picked up values.yaml
 kubectl kustomize overlays/dev/ | grep clusterName
@@ -152,6 +162,7 @@ kubectl get configmap -n kube-system alb-controller-config
 ```
 
 ### **Issue: Wrong IAM role**
+
 ```bash
 # Check service account annotation
 kubectl get sa -n kube-system aws-load-balancer-controller -o yaml | grep role-arn
@@ -161,6 +172,7 @@ kubectl get sa -n kube-system aws-load-balancer-controller -o yaml | grep role-a
 ```
 
 ### **Issue: Controller not starting**
+
 ```bash
 # Check logs
 kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=100

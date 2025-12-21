@@ -52,13 +52,13 @@ if [ $? -eq 0 ]; then
     echo ""
     echo -e "${GREEN}✓${NC} Kubeconfig updated successfully!"
     echo ""
-    
+
     # Test connection
     echo -e "${BLUE}🔍 Testing cluster connection...${NC}"
     echo ""
-    
+
     kubectl get nodes -o wide
-    
+
     if [ $? -eq 0 ]; then
         echo ""
         echo -e "${GREEN}✓${NC} Successfully connected to cluster!"

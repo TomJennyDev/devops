@@ -82,7 +82,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
       # - Xem security groups hiện có (để attach vào ALB)
       # - Xem EC2 instances (EKS nodes)
       # - Xem load balancers và target groups hiện có
-      # 
+      #
       # Những permissions này KHÔNG TỐN TIỀN, chỉ đọc thông tin
       # Resource = "*" vì AWS API yêu cầu (không thể restrict to specific resources)
       {
@@ -102,7 +102,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "ec2:DescribeTags",                   # Tags on resources
           "ec2:GetCoipPoolUsage",               # Outpost IP pools
           "ec2:DescribeCoipPools",              # Outpost IP pools
-          
+
           # ELB Describe Actions - Xem thông tin load balancers
           "elasticloadbalancing:DescribeLoadBalancers",           # List ALBs/NLBs
           "elasticloadbalancing:DescribeLoadBalancerAttributes",  # ALB settings
@@ -132,29 +132,29 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           # Cognito - User authentication cho ALB
           # Example: alb.ingress.kubernetes.io/auth-type: cognito
           "cognito-idp:DescribeUserPoolClient",
-          
+
           # ACM - SSL/TLS Certificates
           # Example: alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
           "acm:ListCertificates",         # List available certificates
           "acm:DescribeCertificate",      # Get certificate details
-          
+
           # IAM Server Certificates (legacy, ACM preferred)
           "iam:ListServerCertificates",
           "iam:GetServerCertificate",
-          
+
           # WAF v1 (regional, legacy)
           "waf-regional:GetWebACL",
           "waf-regional:GetWebACLForResource",
           "waf-regional:AssociateWebACL",      # Attach WAF to ALB
           "waf-regional:DisassociateWebACL",   # Detach WAF from ALB
-          
+
           # WAF v2 (recommended)
           # Example: alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:...
           "wafv2:GetWebACL",
           "wafv2:GetWebACLForResource",
           "wafv2:AssociateWebACL",             # Attach WAFv2 to ALB
           "wafv2:DisassociateWebACL",          # Detach WAFv2 from ALB
-          
+
           # Shield - DDoS Protection (auto-enabled on ALB)
           "shield:GetSubscriptionState",       # Check Shield subscription
           "shield:DescribeProtection",         # View protection status
@@ -233,7 +233,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
             # Request KHÔNG CÓ tag mới (đang sửa tag cũ)
             # "true" = tag must NOT exist in request
             "aws:RequestTag/elbv2.k8s.aws/cluster" = "true"
-            
+
             # Resource ĐÃ CÓ tag cluster (do controller tạo)
             # "false" = tag MUST exist on resource
             "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
@@ -321,7 +321,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           Null = {
             # Request KHÔNG có tag mới (đang sửa tag cũ)
             "aws:RequestTag/elbv2.k8s.aws/cluster" = "true"
-            
+
             # Resource ĐÃ CÓ tag cluster (do controller tạo)
             "aws:ResourceTag/elbv2.k8s.aws/cluster" = "false"
           }
@@ -358,7 +358,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
           "elasticloadbalancing:SetSecurityGroups",             # Change SGs
           "elasticloadbalancing:SetSubnets",                    # Change subnets
           "elasticloadbalancing:DeleteLoadBalancer",            # Delete ALB/NLB
-          
+
           # Target Group modifications
           "elasticloadbalancing:ModifyTargetGroup",             # Change TG settings
           "elasticloadbalancing:ModifyTargetGroupAttributes",   # Deregistration delay, stickiness
@@ -409,7 +409,7 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
       # =============================================
       # Cho phép add/remove Pod IPs vào Target Groups
       # Đây là CORE FUNCTION để ALB biết forward traffic đến pod nào
-      # 
+      #
       # Workflow:
       # 1. Pod starts → Controller RegisterTargets (10.0.11.5:8080)
       # 2. Pod scales up → RegisterTargets (new pod IPs)
@@ -432,14 +432,14 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
         Action = [
           # WAF Integration
           "elasticloadbalancing:SetWebAcl",  # Attach WAF Web ACL to ALB
-          
+
           # Listener modifications
           "elasticloadbalancing:ModifyListener",  # Change listener settings
-          
+
           # SSL Certificate management
           "elasticloadbalancing:AddListenerCertificates",     # Add SSL cert
           "elasticloadbalancing:RemoveListenerCertificates",  # Remove SSL cert
-          
+
           # Rule modifications
           "elasticloadbalancing:ModifyRule"  # Change routing rules
         ]

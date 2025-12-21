@@ -47,17 +47,17 @@ if kubectl get namespace argocd &> /dev/null; then
     if kubectl get applications -n argocd &> /dev/null 2>&1; then
         echo "Deleting applications..."
         kubectl delete applications --all -n argocd --timeout=120s || true
-        
+
         echo "Waiting for applications to be removed..."
         sleep 10
-        
+
         # Force delete if needed
         if kubectl get applications -n argocd --no-headers 2>/dev/null | grep -q .; then
             echo "Force deleting remaining applications..."
             kubectl patch applications -n argocd --type json --patch='[{"op": "remove", "path": "/metadata/finalizers"}]' $(kubectl get applications -n argocd -o name) 2>/dev/null || true
             kubectl delete applications --all -n argocd --force --grace-period=0 2>/dev/null || true
         fi
-        
+
         echo -e "${GREEN}✅ Applications deleted${NC}"
     else
         echo -e "${YELLOW}No applications found${NC}"
@@ -108,13 +108,13 @@ echo -e "${YELLOW}📋 Step 4: Deleting ArgoCD namespace...${NC}"
 if kubectl get namespace argocd &> /dev/null; then
     echo "Deleting ArgoCD namespace..."
     kubectl delete namespace argocd --timeout=120s || true
-    
+
     # Force delete if stuck
     if kubectl get namespace argocd &> /dev/null 2>&1; then
         echo "Force deleting ArgoCD namespace..."
         kubectl get namespace argocd -o json | jq '.spec.finalizers=[]' | kubectl replace --raw /api/v1/namespaces/argocd/finalize -f - || true
     fi
-    
+
     echo -e "${GREEN}✅ ArgoCD namespace deleted${NC}"
 else
     echo -e "${YELLOW}ArgoCD namespace not found${NC}"

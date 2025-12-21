@@ -1,9 +1,11 @@
 # AWS Secrets Manager Module
 
 ## Overview
+
 Manages sensitive credentials and secrets using AWS Secrets Manager with encryption at rest and IAM-based access control.
 
 ## Features
+
 - ✅ Encrypted secret storage (KMS)
 - ✅ Secret versioning
 - ✅ Automated IAM policy generation
@@ -28,7 +30,7 @@ module "secrets" {
         password = "SecurePassword123!"
       }
     }
-    
+
     flowise-db = {
       description = "Flowise database credentials"
       type        = "database"
@@ -93,6 +95,7 @@ module "secrets" {
 ## Retrieving Secrets
 
 ### In Terraform (other modules)
+
 ```hcl
 data "aws_secretsmanager_secret_version" "grafana" {
   secret_id = "my-eks-dev-grafana-admin"
@@ -104,6 +107,7 @@ locals {
 ```
 
 ### In Kubernetes (External Secrets Operator)
+
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
@@ -140,11 +144,13 @@ spec:
 ```
 
 ## Cost Considerations
+
 - $0.40 per secret per month
 - $0.05 per 10,000 API calls
 - Free tier: 30 days for first secret
 
 ## Limitations
+
 - Secret size: max 65,536 bytes
 - Secret name: 512 characters max
 - 500 versions per secret

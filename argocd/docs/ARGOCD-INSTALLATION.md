@@ -1,6 +1,7 @@
 # 🚀 HƯỚNG DẪN CÀI ĐẶT ARGOCD BẰNG HELM
 
 ## 📋 Mục Lục
+
 1. [Yêu Cầu](#yêu-cầu)
 2. [Cài Đặt ArgoCD](#cài-đặt-argocd)
 3. [Cấu Hình Ingress với ALB](#cấu-hình-ingress-với-alb)
@@ -14,12 +15,14 @@
 ## ✅ Yêu Cầu
 
 ### 1. **EKS Cluster đã được deploy**
+
 ```bash
 cd terraform-eks/environments/dev
 terraform apply
 ```
 
 ### 2. **kubectl đã được cấu hình**
+
 ```bash
 aws eks update-kubeconfig --region us-west-2 --name dev-eks-cluster
 
@@ -28,6 +31,7 @@ kubectl get nodes
 ```
 
 ### 3. **Helm đã được cài đặt**
+
 ```bash
 # Windows (PowerShell)
 choco install kubernetes-helm
@@ -38,12 +42,14 @@ helm version
 ```
 
 ### 4. **AWS Load Balancer Controller đã được deploy**
+
 ```bash
 # Kiểm tra
 kubectl get deployment -n kube-system aws-load-balancer-controller
 ```
 
 ### 5. **ACM Certificate đã được tạo** (cho HTTPS)
+
 ```bash
 # Tạo bằng Terraform hoặc AWS Console
 # Lưu lại ARN: arn:aws:acm:us-west-2:123456789:certificate/xxx
@@ -89,7 +95,7 @@ global:
 # ============================================
 server:
   replicas: 2
-  
+
   # Expose ArgoCD qua LoadBalancer (NLB)
   service:
     type: LoadBalancer
@@ -98,7 +104,7 @@ server:
       service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
       service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
       service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "ssl"
-  
+
   # Hoặc expose qua ALB Ingress (Recommended)
   ingress:
     enabled: true
@@ -108,28 +114,28 @@ server:
       alb.ingress.kubernetes.io/scheme: internet-facing
       alb.ingress.kubernetes.io/target-type: ip
       alb.ingress.kubernetes.io/backend-protocol: HTTPS
-      
+
       # SSL/TLS Configuration
       alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:ACCOUNT_ID:certificate/CERT_ID  # ⚠️ THAY ĐỔI
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
       alb.ingress.kubernetes.io/ssl-redirect: '443'
-      
+
       # Health Check
       alb.ingress.kubernetes.io/healthcheck-path: /healthz
       alb.ingress.kubernetes.io/healthcheck-port: '8080'
       alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
-      
+
       # Tags
       alb.ingress.kubernetes.io/tags: Environment=dev,Application=argocd
-    
+
     hosts:
       - argocd.example.com  # ⚠️ THAY ĐỔI
-    
+
     tls:
       - secretName: argocd-tls
         hosts:
           - argocd.example.com
-  
+
   # Resource limits
   resources:
     limits:
@@ -138,7 +144,7 @@ server:
     requests:
       cpu: 250m
       memory: 256Mi
-  
+
   # Metrics
   metrics:
     enabled: true
@@ -170,7 +176,7 @@ controller:
     requests:
       cpu: 500m
       memory: 512Mi
-  
+
   metrics:
     enabled: true
     serviceMonitor:
@@ -200,7 +206,7 @@ configs:
       url: https://github.com/TomJennyDev/devops.git
       type: git
       name: devops
-    
+
     # GitOps repo (application manifests) - QUAN TRỌNG cho GitHub Workflow
     gitops-repo:
       url: https://github.com/TomJennyDev/flowise-gitops.git
@@ -209,21 +215,21 @@ configs:
       # Nếu private repo, thêm credentials:
       # username: <github-username>
       # password: <github-token>
-  
+
   # Admin password (bcrypt hash)
   # Generate: htpasswd -nbBC 10 "" YOUR_PASSWORD | tr -d ':\n' | sed 's/$2y/$2a/'
   secret:
     # Default: admin / admin123
     argocdServerAdminPassword: "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/XGN2opqjr9cTPq"
-  
+
   # Server configuration
   params:
     server.insecure: false  # Enforce HTTPS
-    
+
     # ⚠️ QUAN TRỌNG: Enable gRPC Web cho GitHub Actions
     # GitHub Actions workflow cần gRPC web để kết nối
     server.enable.gzip: true
-    
+
     # Timeout settings (cho workflow chờ sync)
     timeout.reconciliation: 180s
     timeout.hard.reconciliation: 0
@@ -246,7 +252,7 @@ applicationSet:
 # ============================================
 rbac:
   create: true
-  
+
   # ⚠️ QUAN TRỌNG: Policy cho GitHub Actions API access
   policy.default: role:readonly
   policy.csv: |
@@ -258,19 +264,19 @@ rbac:
     p, role:admin, accounts, *, *, allow
     p, role:admin, gpgkeys, *, *, allow
     p, role:admin, certificates, *, *, allow
-    
+
     # CI/CD role (cho GitHub Actions)
     p, role:cicd, applications, get, */*, allow
     p, role:cicd, applications, sync, */*, allow
     p, role:cicd, applications, refresh, */*, allow
     p, role:cicd, applications, override, */*, allow
     p, role:cicd, repositories, get, *, allow
-    
+
     # Bind admin role to admin user
     g, admin, role:admin
-  
+
   scopes: '[accounts:apiKey]'
-  
+
 # ============================================
 # SERVICE ACCOUNT
 # ============================================
@@ -316,6 +322,7 @@ kubectl get ingress argocd-server -n argocd -o jsonpath='{.status.loadBalancer.i
 ```
 
 **Expected Output:**
+
 ```
 NAME                                       READY   STATUS    RESTARTS   AGE
 argocd-application-controller-0            1/1     Running   0          2m
@@ -346,13 +353,13 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTPS
-    
+
     # SSL/TLS
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:123456789:certificate/xxx  # ⚠️ THAY ĐỔI
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
-    
+
     # Health Check
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     alb.ingress.kubernetes.io/healthcheck-port: '8080'
@@ -361,11 +368,11 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
-    
+
     # Additional Settings
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=300
     alb.ingress.kubernetes.io/tags: Environment=dev,Application=argocd,ManagedBy=kubectl
-    
+
     # CORS (nếu cần)
     alb.ingress.kubernetes.io/actions.ssl-redirect: |
       {
@@ -390,13 +397,14 @@ spec:
                 name: argocd-server
                 port:
                   number: 443
-  
+
   tls:
     - hosts:
         - argocd.yourdomain.com
 ```
 
 **Apply Ingress:**
+
 ```bash
 kubectl apply -f argocd/manifests/ingress.yaml
 
@@ -480,13 +488,14 @@ argocd login argocd.yourdomain.com --username admin
 # Generate API token (không hết hạn)
 argocd account generate-token --account admin --id github-actions
 
-# Output: 
+# Output:
 # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhcmdvY2QiLCJzdWIiOiJhZG1pbjphcGlLZXkiLCJuYmYiOjE3MDE...
 
 # ⚠️ LƯU TOKEN NÀY vào GitHub Secret: ARGOCD_AUTH_TOKEN
 ```
 
 **Tạo Token với thời hạn (optional):**
+
 ```bash
 # Token hết hạn sau 30 ngày
 argocd account generate-token --account admin --id github-actions --expires-in 720h
@@ -496,6 +505,7 @@ argocd account get-user-info
 ```
 
 **Lưu vào GitHub Secrets:**
+
 ```
 Repository → Settings → Secrets and variables → Actions
 → New repository secret
@@ -552,7 +562,7 @@ configs:
       url: https://github.com/TomJennyDev/devops.git
       type: git
       name: devops
-    
+
     # ⚠️ GitOps repo - QUAN TRỌNG cho GitHub Workflow
     gitops-repo:
       url: https://github.com/TomJennyDev/flowise-gitops.git
@@ -564,6 +574,7 @@ configs:
 ```
 
 **Update Helm values và upgrade:**
+
 ```bash
 # Edit values file
 nano argocd/helm-values/argocd-values.yaml
@@ -609,16 +620,16 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  
+
   source:
     repoURL: https://github.com/TomJennyDev/flowise-gitops.git
     targetRevision: main
     path: overlays/dev
-  
+
   destination:
     server: https://kubernetes.default.svc
     namespace: flowise-dev
-  
+
   syncPolicy:
     automated:
       prune: true
@@ -634,7 +645,7 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-  
+
   revisionHistoryLimit: 10
 EOF
 
@@ -737,8 +748,10 @@ argocd app create my-app \
   --auto-prune \
   --self-heal
 ```
+
   --auto-prune \
   --self-heal
+
 ```
 
 ---
@@ -974,16 +987,17 @@ argocd app get ${APP_NAME}
 
 ## 📚 Tài Liệu Tham Khảo
 
-- **ArgoCD Documentation**: https://argo-cd.readthedocs.io/
-- **Helm Chart**: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
-- **AWS Load Balancer Controller**: https://kubernetes-sigs.github.io/aws-load-balancer-controller/
-- **Best Practices**: https://argo-cd.readthedocs.io/en/stable/operator-manual/
+- **ArgoCD Documentation**: <https://argo-cd.readthedocs.io/>
+- **Helm Chart**: <https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd>
+- **AWS Load Balancer Controller**: <https://kubernetes-sigs.github.io/aws-load-balancer-controller/>
+- **Best Practices**: <https://argo-cd.readthedocs.io/en/stable/operator-manual/>
 
 ---
 
 ## ✅ Checklist Triển Khai
 
 ### **Cơ Bản:**
+
 - [ ] EKS Cluster đã được tạo
 - [ ] kubectl đã được cấu hình
 - [ ] Helm đã được cài đặt
@@ -997,6 +1011,7 @@ argocd app get ${APP_NAME}
 - [ ] Đã đổi admin password
 
 ### **GitHub Workflow Integration:** ⚠️ **QUAN TRỌNG**
+
 - [ ] GitOps repository đã được add vào ArgoCD
 - [ ] API Token đã được generate
 - [ ] API Token đã được lưu vào GitHub Secret `ARGOCD_AUTH_TOKEN`
@@ -1013,6 +1028,7 @@ argocd app get ${APP_NAME}
 - [ ] Verify application health status
 
 ### **Testing:**
+
 ```bash
 # Complete verification
 argocd login argocd.yourdomain.com --auth-token ${ARGOCD_AUTH_TOKEN} --grpc-web

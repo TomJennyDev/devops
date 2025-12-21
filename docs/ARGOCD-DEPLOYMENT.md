@@ -19,6 +19,7 @@ cd terraform-eks/scripts
 ```
 
 **Timeline:** ~10 phút
+
 - AWS Load Balancer Controller: ~3 phút
 - Cert-manager: ~2 phút
 - ArgoCD Helm install: ~3 phút
@@ -102,9 +103,10 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ### Via ALB (Production)
 
-**URL:** https://argocd.do2506.click
+**URL:** <https://argocd.do2506.click>
 
 **Credentials:**
+
 - Username: `admin`
 - Password: (xem output từ script hoặc command trên)
 
@@ -116,13 +118,14 @@ Wait 2-3 phút để ALB provision và DNS propagate.
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-**URL:** https://localhost:8080
+**URL:** <https://localhost:8080>
 
 ## ArgoCD Configuration
 
 File: `argocd/helm-values/argocd-values.yaml`
 
 **Key settings:**
+
 - Server: ALB Ingress với SSL (argocd.do2506.click)
 - Repo Server: 2 replicas
 - Application Controller: 2 replicas
@@ -157,12 +160,14 @@ argocd account update-password
 ### 2. Add Git Repository
 
 **Via UI:**
+
 1. Settings → Repositories → Connect Repo
 2. Enter GitHub repo URL
 3. Choose HTTPS or SSH
 4. Add credentials if private
 
 **Via CLI:**
+
 ```bash
 argocd repo add https://github.com/TomJennyDev/devops.git \
   --username <github-username> \
@@ -176,6 +181,7 @@ kubectl apply -f argocd/app-of-apps-kustomize-dev.yaml
 ```
 
 This will deploy:
+
 - AWS Load Balancer Controller (system app)
 - Prometheus (monitoring)
 - Other infrastructure components
@@ -195,6 +201,7 @@ kubectl apply -f ../environments/dev/cluster-info/cluster-info-configmap.yaml
 ```
 
 **Usage in Applications:**
+
 ```yaml
 env:
   - name: CLUSTER_NAME
@@ -271,6 +278,7 @@ spec:
 ```
 
 **Pull images:**
+
 ```bash
 # Login to ECR
 aws ecr get-login-password --region ap-southeast-1 | \
@@ -303,16 +311,16 @@ terraform-eks/
 
 ## Resources
 
-- ArgoCD Docs: https://argo-cd.readthedocs.io
-- Helm Chart: https://github.com/argoproj/argo-helm
-- AWS Load Balancer Controller: https://kubernetes-sigs.github.io/aws-load-balancer-controller
+- ArgoCD Docs: <https://argo-cd.readthedocs.io>
+- Helm Chart: <https://github.com/argoproj/argo-helm>
+- AWS Load Balancer Controller: <https://kubernetes-sigs.github.io/aws-load-balancer-controller>
 
 ## Summary
 
 1. ✅ Terraform creates EKS cluster
 2. ✅ Export cluster info: `./export-cluster-info.sh`
 3. ✅ Deploy ArgoCD: `./deploy-argocd.sh`
-4. ⏳ Access UI: https://argocd.do2506.click
+4. ⏳ Access UI: <https://argocd.do2506.click>
 5. ⏳ Deploy apps via ArgoCD
 
 **Next:** Configure Git repos and deploy your applications! 🚀

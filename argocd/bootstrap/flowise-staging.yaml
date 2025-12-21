@@ -10,16 +10,16 @@ metadata:
     app: flowise
 spec:
   project: applications
-  
+
   source:
     repoURL: https://github.com/TomJennyDev/devops.git
     targetRevision: main
     path: argocd/apps/flowise/overlays/staging
-  
+
   destination:
     server: https://kubernetes.default.svc
     namespace: flowise-staging
-  
+
   syncPolicy:
     automated:
       prune: true

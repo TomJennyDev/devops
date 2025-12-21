@@ -80,6 +80,7 @@ Terraform configuration để deploy Amazon EKS cluster với 3 môi trường: 
 **Architecture Highlights:**
 
 🔹 **Layer 1 - Infrastructure (Terraform):**
+
 - Multi-AZ deployment (2 AZs for Dev, 3 AZs for Staging/Prod)
 - High Availability with multiple NAT Gateways
 - EKS Cluster with latest Kubernetes (1.31/1.34)
@@ -87,6 +88,7 @@ Terraform configuration để deploy Amazon EKS cluster với 3 môi trường: 
 - State management with S3 + DynamoDB locking
 
 🔹 **Layer 2 - System Apps (ArgoCD):**
+
 - **ArgoCD**: GitOps continuous deployment (App of Apps pattern)
 - **AWS Load Balancer Controller**: ALB/NLB for Ingress
 - **External DNS**: Automatic Route53 record management
@@ -97,18 +99,21 @@ Terraform configuration để deploy Amazon EKS cluster với 3 môi trường: 
   - Multiple exporters (Node, Kube State, Push Gateway)
 
 🔹 **Layer 3 - Business Apps (ArgoCD):**
+
 - **Flowise**: AI Chatbot with PostgreSQL, Ingress, PVC, HPA
 - **Your Applications**: Deployed via ArgoCD from GitHub
 - Auto-scaling, persistent storage, SSL certificates
 - Multiple environments (dev, staging, prod)
 
 🔹 **CI/CD Pipeline:**
+
 - GitHub Actions for automated builds
 - Docker image build and push to ECR
 - ArgoCD auto-sync for deployment
 - GitOps workflow (Git as single source of truth)
 
 **DNS & SSL Architecture:**
+
 - **CoreDNS**: Built-in EKS addon - internal cluster DNS (service discovery)
 - **External DNS**: Optional module - syncs Ingress/Service to Route53 (public DNS)
 - **AWS ACM**: SSL/TLS certificate management (no cert-manager needed)
@@ -150,6 +155,7 @@ terraform-eks/
 ```
 
 ### VPC Architecture (per environment)
+
 ```
 VPC (10.x.0.0/16)
 ├── Public Subnets (2-3 AZs based on env)
@@ -205,6 +211,7 @@ bash scripts/test-environment.sh dev
 Tạo S3 buckets và DynamoDB tables cho **mỗi môi trường**:
 
 #### Development Backend
+
 ```bash
 # Create S3 bucket
 aws s3api create-bucket \
@@ -227,6 +234,7 @@ aws dynamodb create-table \
 ```
 
 #### Staging Backend
+
 ```bash
 aws s3api create-bucket \
   --bucket terraform-state-372836560690-staging \
@@ -246,6 +254,7 @@ aws dynamodb create-table \
 ```
 
 #### Production Backend
+
 ```bash
 aws s3api create-bucket \
   --bucket terraform-state-372836560690-prod \
@@ -293,6 +302,7 @@ kubectl get pods -A
 ```
 
 **Development Config:**
+
 - 1 NAT Gateway (cost saving)
 - 2 nodes (t3.large ON_DEMAND) - HA configuration
 - 2 Availability Zones
@@ -319,6 +329,7 @@ kubectl get nodes
 ```
 
 **Staging Config:**
+
 - 2 NAT Gateways (moderate HA)
 - 2 nodes (t3.large SPOT - 70% cheaper)
 - 3 Availability Zones
@@ -347,6 +358,7 @@ kubectl get nodes
 ```
 
 **Production Config:**
+
 - 3 NAT Gateways (full HA)
 - 3 nodes (t3.xlarge/t3a.xlarge ON_DEMAND)
 - 3 Availability Zones
@@ -373,11 +385,12 @@ configure_kubectl             # Command để config kubectl
 
 | Environment | EKS | EC2 Nodes | NAT Gateway | Storage | Logs | **Total** |
 |-------------|-----|-----------|-------------|---------|------|-----------||
-| **Dev** | $73 | $60 (2x t3.large ON_DEMAND) | $32 (1x) | $5 | $2 | **~$140-160** |
+| **Dev** | $73 | $60 (2x t3.large ON_DEMAND) | $32 (1x) | $5 | $2 | **~$140-160**|
 | **Staging** | $73 | $20 (2x t3.large SPOT) | $65 (2x) | $10 | $5 | **~$185-200** |
 | **Production** | $73 | $150 (3x t3.xlarge) | $97 (3x) | $30 | $10 | **~$315-350** |
 
 💡 **Cost Optimization Tips:**
+
 - Use SPOT instances in staging: Save ~70%
 - Use ARM/Graviton instances: Save ~20%
 - Reduce NAT Gateway count in dev: Save $65/month
@@ -471,6 +484,7 @@ kubectl apply -f ../argocd/bootstrap/infrastructure-apps-dev.yaml
 ```
 
 **📖 Detailed guides:**
+
 - [argocd/README.md](../argocd/README.md) - Complete ArgoCD setup
 - [argocd/docs/](../argocd/docs/) - ArgoCD architecture and getting started
 - [docs/DNS-ARCHITECTURE.md](docs/DNS-ARCHITECTURE.md) - DNS architecture explained
@@ -515,14 +529,16 @@ kubectl get svc nginx
 This project follows the **GitOps separation of concerns** pattern:
 
 ### Layer 1: Infrastructure (This Repository)
+
 - **Managed by**: Terraform
 - **Contains**: VPC, EKS, IAM, Security Groups
 - **Change Frequency**: Low (weeks/months)
 - **Team**: Platform/DevOps
 
 ### Layer 2: System Applications
+
 - **Managed by**: ArgoCD (see `../argocd/` folder)
-- **Contains**: 
+- **Contains**:
   - AWS Load Balancer Controller (ALB/NLB ingress)
   - Prometheus + Grafana (monitoring stack)
   - External DNS (optional - Route53 automation)
@@ -530,12 +546,14 @@ This project follows the **GitOps separation of concerns** pattern:
 - **Team**: Platform/SRE
 
 ### Layer 3: Business Applications
+
 - **Managed by**: ArgoCD (separate repository)
 - **Contains**: Your microservices, databases, APIs
 - **Change Frequency**: High (daily/hourly)
 - **Team**: Development teams
 
 **Why this separation?**
+
 - ✅ Clear ownership and responsibilities
 - ✅ Independent lifecycles and rollback
 - ✅ Reduced blast radius
@@ -545,6 +563,7 @@ This project follows the **GitOps separation of concerns** pattern:
 ## 🔐 Security Best Practices
 
 ### ✅ Implemented
+
 - [x] Private subnets for worker nodes
 - [x] Security groups with least privilege
 - [x] IRSA (IAM Roles for Service Accounts)
@@ -553,6 +572,7 @@ This project follows the **GitOps separation of concerns** pattern:
 - [x] Public API with CIDR restrictions
 
 ### 🎯 Recommended Next Steps
+
 1. Enable Pod Security Standards
 2. Setup Network Policies
 3. Enable AWS Secrets Manager integration
@@ -562,6 +582,7 @@ This project follows the **GitOps separation of concerns** pattern:
 ## 🧹 Cleanup
 
 ### Clean Up Kubernetes Resources First
+
 ```bash
 # Delete all LoadBalancers (prevent orphaned ELBs)
 kubectl delete svc --all --all-namespaces
@@ -679,6 +700,7 @@ terraform import <resource_type>.<name> <resource_id>
 ## 🔗 Useful Commands
 
 ### Cluster Management
+
 ```bash
 # Switch between environments
 aws eks update-kubeconfig --name my-eks-dev --region ap-southeast-1
@@ -693,6 +715,7 @@ kubectl config use-context <context-name>
 ```
 
 ### Validation & Testing
+
 ```bash
 # Validate all environments
 bash scripts/validate-all.sh
@@ -717,6 +740,7 @@ bash scripts/test-environment.sh dev
 ## 👥 Support
 
 For issues or questions:
+
 1. Check [Troubleshooting](#-troubleshooting) section
 2. Review validation: `bash scripts/validate-all.sh`
 3. Check documentation in `docs/` folder

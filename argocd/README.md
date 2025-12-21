@@ -19,6 +19,7 @@ argocd/
 ## 📁 Directory Details
 
 ### `bootstrap/`
+
 ArgoCD Application CRDs and App-of-Apps patterns for automated deployment.
 
 ```
@@ -32,6 +33,7 @@ bootstrap/
 ```
 
 **Usage:**
+
 ```bash
 # Deploy app-of-apps (bootstraps all apps in environment)
 kubectl apply -f argocd/bootstrap/app-of-apps-dev.yaml
@@ -43,6 +45,7 @@ kubectl apply -f argocd/bootstrap/flowise-dev.yaml
 ---
 
 ### `projects/`
+
 ArgoCD Projects for RBAC and resource isolation.
 
 ```
@@ -52,12 +55,14 @@ projects/
 ```
 
 **Features:**
+
 - ✅ RBAC policies (admin, developer, readonly roles)
 - ✅ Source repo whitelisting
 - ✅ Destination namespace restrictions
 - ✅ Cluster/namespace resource controls
 
 **Apply:**
+
 ```bash
 kubectl apply -f argocd/projects/
 ```
@@ -65,6 +70,7 @@ kubectl apply -f argocd/projects/
 ---
 
 ### `infrastructure/`
+
 System-level Kubernetes components (controllers, operators, monitoring).
 
 ```
@@ -86,6 +92,7 @@ infrastructure/
 
 **Belongs to:** `infrastructure` ArgoCD Project  
 **Characteristics:**
+
 - Deployed to system namespaces (`kube-system`, `monitoring`)
 - Cluster-scoped resources allowed
 - Restricted access (infra team only)
@@ -93,6 +100,7 @@ infrastructure/
 ---
 
 ### `apps/`
+
 Business applications and microservices.
 
 ```
@@ -114,11 +122,13 @@ apps/
 
 **Belongs to:** `applications` ArgoCD Project  
 **Characteristics:**
+
 - Deployed to app namespaces (`flowise-*`, `app-*`)
 - Namespace-scoped resources only
 - Developer access allowed
 
 **Add new app:**
+
 ```bash
 mkdir -p apps/new-app/{base,overlays/{dev,staging,production}}
 # Create manifests...
@@ -128,6 +138,7 @@ mkdir -p apps/new-app/{base,overlays/{dev,staging,production}}
 ---
 
 ### `config/`
+
 Centralized configuration management (Helm values, shared configs).
 
 ```
@@ -143,11 +154,13 @@ config/
 ```
 
 **Purpose:**
+
 - Single source of truth for configs
 - Environment-specific overrides
 - Shared across multiple apps
 
 **Usage in Application:**
+
 ```yaml
 spec:
   source:
@@ -159,6 +172,7 @@ spec:
 ---
 
 ### `docs/`
+
 Documentation files.
 
 ```
@@ -174,6 +188,7 @@ docs/
 ## 🚀 Deployment Workflow
 
 ### 1. Initial Setup (One-time)
+
 ```bash
 # Deploy ArgoCD Projects (RBAC)
 kubectl apply -f argocd/projects/
@@ -183,6 +198,7 @@ kubectl apply -f argocd/bootstrap/app-of-apps-dev.yaml
 ```
 
 ### 2. Deploy Individual App
+
 ```bash
 # Deploy Flowise to dev
 kubectl apply -f argocd/bootstrap/flowise-dev.yaml
@@ -195,6 +211,7 @@ kubectl apply -f argocd/bootstrap/flowise-dev.yaml
 ```
 
 ### 3. Update Application
+
 ```bash
 # Make changes to manifests
 vim argocd/apps/flowise/overlays/dev/deployment-patch.yaml
@@ -243,6 +260,7 @@ git push
 ## 📋 Common Tasks
 
 ### Add New Environment
+
 ```bash
 # 1. Create overlay
 mkdir -p argocd/apps/flowise/overlays/qa
@@ -255,6 +273,7 @@ cp argocd/bootstrap/flowise-dev.yaml argocd/bootstrap/flowise-qa.yaml
 ```
 
 ### Add New Application
+
 ```bash
 # 1. Create directory structure
 mkdir -p argocd/apps/new-app/{base,overlays/{dev,staging,production}}
@@ -271,6 +290,7 @@ mkdir -p argocd/apps/new-app/{base,overlays/{dev,staging,production}}
 ```
 
 ### Update Helm Values
+
 ```bash
 # Centralized config
 vim argocd/config/prometheus/dev-values.yaml
@@ -321,6 +341,7 @@ git push
 ## 🆘 Troubleshooting
 
 ### Application stuck in "OutOfSync"
+
 ```bash
 # Force sync
 kubectl patch application -n argocd flowise-dev -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"syncStrategy":{"hook":{}}}}}' --type merge
@@ -330,6 +351,7 @@ argocd app sync flowise-dev --force
 ```
 
 ### Path not found error
+
 ```bash
 # Verify path in Application CRD
 kubectl get application -n argocd flowise-dev -o yaml | grep path
@@ -339,6 +361,7 @@ ls -la argocd/apps/flowise/overlays/dev/
 ```
 
 ### RBAC denied
+
 ```bash
 # Check project permissions
 kubectl get appproject -n argocd applications -o yaml

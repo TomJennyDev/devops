@@ -4,7 +4,7 @@
 # ==================================================
 # This script updates ALB Controller values.yaml with
 # actual values from Terraform outputs
-# 
+#
 # Usage: ./update-alb-controller-config.sh [environment]
 # Example: ./update-alb-controller-config.sh dev
 
@@ -114,11 +114,11 @@ DEPLOYMENT_PATCH="$SCRIPT_DIR/../argocd/infrastructure/aws-load-balancer-control
 
 if [ -f "$DEPLOYMENT_PATCH" ]; then
   cp "$DEPLOYMENT_PATCH" "$DEPLOYMENT_PATCH.bak"
-  
+
   sed -i "s|--cluster-name=.*|--cluster-name=$CLUSTER_NAME|g" "$DEPLOYMENT_PATCH"
   sed -i "s|--aws-region=.*|--aws-region=$AWS_REGION|g" "$DEPLOYMENT_PATCH"
   sed -i "s|--aws-vpc-id=.*|--aws-vpc-id=$VPC_ID|g" "$DEPLOYMENT_PATCH"
-  
+
   echo -e "${GREEN}✅ Updated $DEPLOYMENT_PATCH${NC}"
 fi
 
@@ -131,9 +131,9 @@ SA_PATCH="$SCRIPT_DIR/../argocd/infrastructure/aws-load-balancer-controller/over
 
 if [ -f "$SA_PATCH" ]; then
   cp "$SA_PATCH" "$SA_PATCH.bak"
-  
+
   sed -i "s|eks.amazonaws.com/role-arn: arn:aws:iam::.*:role/.*|eks.amazonaws.com/role-arn: $ALB_ROLE_ARN|g" "$SA_PATCH"
-  
+
   echo -e "${GREEN}✅ Updated $SA_PATCH${NC}"
 fi
 

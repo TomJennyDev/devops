@@ -5,10 +5,12 @@
 ### 📊 Node Capacity Analysis
 
 **t3.medium specs:**
+
 - 2 vCPU (2000m)
 - 4GB RAM (4096Mi)
 
 **Available after system reserved:**
+
 - ~1700m CPU
 - ~3584Mi RAM
 
@@ -30,14 +32,14 @@ NODE CAPACITY:             1700m CPU, 3584Mi RAM
 STATUS:                    OVERCOMMIT by design ✅
 ```
 
-### Why Overcommit is OK:
+### Why Overcommit is OK
 
 1. **Not all pods run at full requests simultaneously**
 2. **Kubernetes scheduler won't schedule if actual resources unavailable**
 3. **Limits allow burst usage when needed**
 4. **System pods use less than reserved**
 
-### Actual Usage Pattern (Expected):
+### Actual Usage Pattern (Expected)
 
 ```
 System:      ~300m CPU,  ~350Mi RAM  (actual)
@@ -55,6 +57,7 @@ TOTAL ACTUAL: 1500m CPU, 2350Mi RAM ✅ FITS!
 ### 1. LimitRanges (Adjusted)
 
 **Default Namespace:**
+
 ```yaml
 Requests: 50m CPU, 128Mi RAM     (was: 100m, 128Mi)
 Limits:   200m CPU, 256Mi RAM    (was: 500m, 512Mi)
@@ -62,6 +65,7 @@ Max:      500m CPU, 512Mi RAM    (was: 2000m, 2Gi)
 ```
 
 **ArgoCD Namespace:**
+
 ```yaml
 Requests: 100m CPU, 128Mi RAM    (was: 250m, 256Mi)
 Limits:   500m CPU, 512Mi RAM    (was: 1000m, 1Gi)
@@ -69,6 +73,7 @@ Max:      1000m CPU, 1Gi RAM     (was: 2000m, 2Gi)
 ```
 
 **Monitoring Namespace (NEW):**
+
 ```yaml
 Requests: 100m CPU, 256Mi RAM
 Limits:   300m CPU, 512Mi RAM
@@ -78,6 +83,7 @@ Max:      500m CPU, 1Gi RAM
 ### 2. ResourceQuotas (Adjusted)
 
 **Default:**
+
 ```yaml
 Requests: 300m CPU, 512Mi RAM    (was: 2000m, 4Gi)
 Limits:   600m CPU, 1Gi RAM      (was: 4000m, 8Gi)
@@ -85,6 +91,7 @@ Max Pods: 10                     (was: 20)
 ```
 
 **ArgoCD:**
+
 ```yaml
 Requests: 1100m CPU, 1200Mi RAM  (was: 3000m, 6Gi)
 Limits:   2500m CPU, 3Gi RAM     (was: 6000m, 12Gi)
@@ -92,6 +99,7 @@ Max Pods: 15                     (was: 30)
 ```
 
 **Monitoring (NEW):**
+
 ```yaml
 Requests: 400m CPU, 1200Mi RAM
 Limits:   1000m CPU, 2500Mi RAM
@@ -104,27 +112,32 @@ Storage:  50Gi
 ## 🚀 Deployment Steps
 
 ### 1. Review Changes
+
 ```bash
 cd /d/devops/gitops/terraform-eks/environments/dev
 git diff terraform.tfvars
 ```
 
 ### 2. Initialize (if new module)
+
 ```bash
 terraform init
 ```
 
 ### 3. Plan
+
 ```bash
 terraform plan | grep -A 20 "resource_limits"
 ```
 
 ### 4. Apply
+
 ```bash
 terraform apply -auto-approve
 ```
 
 ### 5. Verify
+
 ```bash
 # Check quotas
 kubectl describe resourcequota -n default
@@ -145,6 +158,7 @@ kubectl top pods -A
 ## 🔍 Validation Commands
 
 ### Check if pods can schedule
+
 ```bash
 # Test deployment in default namespace
 kubectl run test-nginx --image=nginx -n default
@@ -155,6 +169,7 @@ kubectl describe pod test-nginx -n default
 ```
 
 ### Monitor resource usage
+
 ```bash
 # Real-time monitoring
 kubectl top nodes
@@ -166,6 +181,7 @@ kubectl describe resourcequota -n argocd | grep -A 10 "Used"
 ```
 
 ### Check for rejected pods
+
 ```bash
 # Look for quota exceeded errors
 kubectl get events -n default --sort-by='.lastTimestamp' | grep -i quota
@@ -177,21 +193,25 @@ kubectl get events -n argocd --sort-by='.lastTimestamp' | grep -i limit
 ## ⚠️ Important Notes
 
 ### 1. Existing Pods
+
 - **LimitRange only applies to NEW pods**
 - Existing ArgoCD/Monitoring pods won't be affected
 - To apply limits to existing: `kubectl rollout restart deployment -n argocd`
 
 ### 2. Quota Enforcement
+
 - **ResourceQuota is enforced immediately**
 - New pods will be rejected if quota exceeded
 - Monitor with: `kubectl describe quota -n <namespace>`
 
 ### 3. Pod Eviction
+
 - If node runs out of memory, pods may be evicted
 - Pods without limits are evicted first
 - Priority classes affect eviction order
 
 ### 4. Scaling Considerations
+
 - If you need to scale:
   - Option A: Scale to t3.large (4 vCPU, 8GB) - $120/month
   - Option B: Add second t3.medium node - $120/month
@@ -201,7 +221,8 @@ kubectl get events -n argocd --sort-by='.lastTimestamp' | grep -i limit
 
 ## 🎯 Next Steps
 
-### If pods are pending:
+### If pods are pending
+
 ```bash
 # 1. Check why
 kubectl describe pod <pod-name> -n <namespace>
@@ -215,7 +236,8 @@ kubectl describe resourcequota -n <namespace>
 # - Scale cluster nodes
 ```
 
-### If OOM kills occur:
+### If OOM kills occur
+
 ```bash
 # 1. Check memory usage
 kubectl top pods -A --sort-by=memory
@@ -228,7 +250,8 @@ terraform apply
 kubectl rollout restart deployment/<name> -n <namespace>
 ```
 
-### For production:
+### For production
+
 ```bash
 # Scale to larger instances or multi-node
 node_group_instance_types = ["t3.large"]

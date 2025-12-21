@@ -144,14 +144,14 @@ jobs:
                   AWS_REGION: ${{ env.AWS_REGION }}
               run: |
                   echo "🔍 Getting image digest from ECR..."
-                  
+
                   DIGEST=$(aws ecr describe-images \
                       --repository-name flowise-server \
                       --image-ids imageTag=${{ needs.set-env.outputs.tag }} \
                       --region ${AWS_REGION} \
                       --query 'imageDetails[0].imageDigest' \
                       --output text)
-                  
+
                   echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
                   echo "✅ Image Digest: ${DIGEST}"
 
@@ -218,14 +218,14 @@ jobs:
                   AWS_REGION: ${{ env.AWS_REGION }}
               run: |
                   echo "🔍 Getting image digest from ECR..."
-                  
+
                   DIGEST=$(aws ecr describe-images \
                       --repository-name flowise-ui \
                       --image-ids imageTag=${{ needs.set-env.outputs.tag }} \
                       --region ${AWS_REGION} \
                       --query 'imageDetails[0].imageDigest' \
                       --output text)
-                  
+
                   echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
                   echo "✅ Image Digest: ${DIGEST}"
 
@@ -297,10 +297,10 @@ jobs:
 
                   echo ""
                   echo "🔄 Adding timestamp annotation to force pod restart..."
-                  
+
                   # Create/update deployment patch with timestamp annotation
                   TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-                  
+
                   cat > deployment-restart-patch.yaml <<EOF
                   apiVersion: apps/v1
                   kind: Deployment
@@ -322,7 +322,7 @@ jobs:
                         annotations:
                           kubectl.kubernetes.io/restartedAt: "${TIMESTAMP}"
                   EOF
-                  
+
                   # Add patch to kustomization if not already there
                   if ! grep -q "deployment-restart-patch.yaml" kustomization.yaml; then
                       # Add to patchesStrategicMerge section
@@ -332,7 +332,7 @@ jobs:
                           echo -e "\npatchesStrategicMerge:\n- deployment-restart-patch.yaml" >> kustomization.yaml
                       fi
                   fi
-                  
+
                   echo "✅ Timestamp annotation added: ${TIMESTAMP}"
                   echo ""
                   echo "📄 Updated kustomization.yaml:"

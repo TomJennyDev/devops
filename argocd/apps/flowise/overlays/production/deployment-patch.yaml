@@ -11,31 +11,31 @@ spec:
         env:
         - name: LOG_LEVEL
           value: "warn"
-        
+
         - name: DEBUG
           value: "false"
-        
+
         - name: FLOWISE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: flowise-prod-secrets  # From AWS Secrets Manager
               key: admin-password
-        
+
         - name: FLOWISE_SECRETKEY_OVERWRITE
           valueFrom:
             secretKeyRef:
               name: flowise-prod-secrets
               key: secret-key
-        
+
         - name: CORS_ORIGINS
           value: "https://flowise.do2506.click"
-        
+
         - name: ENVIRONMENT
           valueFrom:
             configMapKeyRef:
               name: flowise-env
               key: ENVIRONMENT
-        
+
         resources:
           requests:
             cpu: 500m
@@ -43,7 +43,7 @@ spec:
           limits:
             cpu: 2000m
             memory: 2Gi
-      
+
       # Anti-affinity to spread across nodes
       affinity:
         podAntiAffinity:
@@ -69,10 +69,10 @@ spec:
         env:
         - name: VITE_PUBLIC_API_URL
           value: "https://flowise.do2506.click/api"
-        
+
         - name: VITE_ENABLE_ANALYTICS
           value: "true"
-        
+
         resources:
           requests:
             cpu: 200m
@@ -80,7 +80,7 @@ spec:
           limits:
             cpu: 1000m
             memory: 1Gi
-      
+
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

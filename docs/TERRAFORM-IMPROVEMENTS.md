@@ -20,12 +20,15 @@
 ## 🔐 1. State Encryption Enhancement
 
 ### Changes Made
+
 **Files Modified:**
+
 - `terraform-eks/environments/dev/backend.tf`
 - `terraform-eks/environments/staging/backend.tf`
 - `terraform-eks/environments/prod/backend.tf`
 
 **Configuration:**
+
 ```hcl
 terraform {
   backend "s3" {
@@ -33,24 +36,27 @@ terraform {
     key            = "eks/terraform.tfstate"
     region         = "ap-southeast-1"
     dynamodb_table = "terraform-state-lock-dev"
-    
+
     # Enable AES-256 encryption at rest
     encrypt = true
-    
+
     # Optional: Use KMS for additional encryption control
-    # kms_key_id = "arn:aws:kms:ap-southeast-1:372836560690:key/..." 
+    # kms_key_id = "arn:aws:kms:ap-southeast-1:372836560690:key/..."
   }
 }
 ```
 
 ### Benefits
+
 - ✅ State files encrypted at rest (AES-256)
 - ✅ Optional KMS encryption for advanced key management
 - ✅ Compliance with security standards (SOC 2, PCI-DSS)
 - ✅ Protection against unauthorized access
 
 ### Next Steps (Optional)
+
 1. Create dedicated KMS key for state encryption:
+
 ```bash
 aws kms create-key --description "Terraform state encryption"
 ```
@@ -62,15 +68,18 @@ aws kms create-key --description "Terraform state encryption"
 ## 🔑 2. AWS Secrets Manager Integration
 
 ### New Module Created
+
 **Location:** `terraform-eks/modules/secrets-manager/`
 
 **Files:**
+
 - `main.tf` - Secret resources and IAM policies
 - `variables.tf` - Module inputs with validation
 - `outputs.tf` - Secret ARNs and IDs
 - `README.md` - Complete documentation
 
 ### Features
+
 - 🔐 Encrypted secret storage with KMS
 - 🔄 Secret versioning support
 - 🎯 Automated IAM policy generation
@@ -78,6 +87,7 @@ aws kms create-key --description "Terraform state encryption"
 - 🏷️ Multiple secret types (database, api-key, password)
 
 ### Usage Example
+
 ```hcl
 module "secrets" {
   source = "../../modules/secrets-manager"
@@ -94,7 +104,7 @@ module "secrets" {
         password = var.grafana_password  # From CI/CD secrets
       }
     }
-    
+
     flowise-db = {
       description = "Flowise database credentials"
       type        = "database"
@@ -112,13 +122,16 @@ module "secrets" {
 ```
 
 ### Migration Path
+
 **Current State:** Passwords in `terraform.tfvars` files
 
 **Target State:** Passwords in AWS Secrets Manager
 
 **Steps:**
+
 1. Create secrets in Secrets Manager (manual or via Terraform)
 2. Update application configurations to use data sources:
+
 ```hcl
 data "aws_secretsmanager_secret_version" "grafana" {
   secret_id = module.secrets.secret_ids["grafana-admin"]
@@ -128,6 +141,7 @@ locals {
   grafana_creds = jsondecode(data.aws_secretsmanager_secret_version.grafana.secret_string)
 }
 ```
+
 3. Remove sensitive values from tfvars files
 4. Update `.gitignore` to prevent accidental commits
 
@@ -136,11 +150,13 @@ locals {
 ## ✅ 3. Variable Validation Rules
 
 ### Changes Made
+
 **File:** `terraform-eks/variables.tf`
 
 **Variables Enhanced:**
 
 #### AWS Region Validation
+
 ```hcl
 variable "aws_region" {
   validation {
@@ -151,6 +167,7 @@ variable "aws_region" {
 ```
 
 #### Cluster Name Validation
+
 ```hcl
 variable "cluster_name" {
   validation {
@@ -161,6 +178,7 @@ variable "cluster_name" {
 ```
 
 #### Kubernetes Version Validation
+
 ```hcl
 variable "cluster_version" {
   validation {
@@ -171,6 +189,7 @@ variable "cluster_version" {
 ```
 
 #### VPC CIDR Validation
+
 ```hcl
 variable "vpc_cidr" {
   validation {
@@ -181,6 +200,7 @@ variable "vpc_cidr" {
 ```
 
 #### Subnet Count Validation
+
 ```hcl
 variable "public_subnet_count" {
   validation {
@@ -191,6 +211,7 @@ variable "public_subnet_count" {
 ```
 
 #### NAT Gateway Validation
+
 ```hcl
 variable "nat_gateway_count" {
   validation {
@@ -201,6 +222,7 @@ variable "nat_gateway_count" {
 ```
 
 ### Benefits
+
 - ✅ Catch configuration errors before `terraform apply`
 - ✅ Clear, actionable error messages
 - ✅ Enforce best practices and compliance
@@ -211,11 +233,13 @@ variable "nat_gateway_count" {
 ## 🪝 4. Pre-commit Hooks
 
 ### Configuration Created
+
 **File:** `.pre-commit-config.yaml`
 
 ### Hook Categories (8 Groups)
 
 #### 1. Terraform Hooks
+
 - ✅ `terraform_fmt` - Format Terraform files
 - ✅ `terraform_validate` - Validate configuration
 - ✅ `terraform_docs` - Auto-generate documentation
@@ -223,10 +247,12 @@ variable "nat_gateway_count" {
 - ✅ `terraform_tfsec` - Security scanning
 
 #### 2. Kubernetes Manifests
+
 - ✅ `forbid-tabs` - No tabs in YAML
 - ✅ `kubeval` - Validate Kubernetes manifests
 
 #### 3. General Code Quality
+
 - ✅ `check-added-large-files` - Prevent large files
 - ✅ `check-yaml` - YAML syntax validation
 - ✅ `check-json` - JSON syntax validation
@@ -234,25 +260,31 @@ variable "nat_gateway_count" {
 - ✅ `end-of-file-fixer` - Consistent EOF
 
 #### 4. Security
+
 - ✅ `detect-aws-credentials` - Prevent credential leaks
 - ✅ `detect-private-key` - Detect private keys
 - ✅ `detect-secrets` - Secret scanning with baseline
 
 #### 5. Markdown Linting
+
 - ✅ `markdownlint` - Lint and fix Markdown files
 
 #### 6. Shell Scripts
+
 - ✅ `shellcheck` - Bash script linting
 
 #### 7. Merge Conflicts
+
 - ✅ `check-merge-conflict` - Detect merge markers
 
 #### 8. Line Endings
+
 - ✅ `mixed-line-ending` - Fix to LF
 
 ### Setup Instructions
 
 #### 1. Install pre-commit
+
 ```bash
 # macOS
 brew install pre-commit
@@ -265,29 +297,35 @@ pip install pre-commit
 ```
 
 #### 2. Install Git Hooks
+
 ```bash
 cd /path/to/devops
 pre-commit install
 ```
 
 #### 3. Run Manually (First Time)
+
 ```bash
 pre-commit run --all-files
 ```
 
 #### 4. Update Hooks
+
 ```bash
 pre-commit autoupdate
 ```
 
 ### TFLint Configuration
+
 **File:** `.tflint.hcl`
 
 **Plugins:**
+
 - Terraform recommended preset
 - AWS ruleset (version 0.32.0)
 
 **Key Rules:**
+
 - Naming conventions (snake_case)
 - Required providers and versions
 - Resource tagging enforcement
@@ -295,6 +333,7 @@ pre-commit autoupdate
 - Standard module structure
 
 ### Benefits
+
 - ✅ Automated code quality checks
 - ✅ Security scanning before commit
 - ✅ Consistent code formatting
@@ -306,6 +345,7 @@ pre-commit autoupdate
 ## 🚀 5. CI/CD Pipeline (GitHub Actions)
 
 ### Workflow Created
+
 **File:** `.github/workflows/terraform.yml`
 
 ### Pipeline Architecture
@@ -341,6 +381,7 @@ pre-commit autoupdate
 ### Jobs Configuration
 
 #### Job 1: Validate (Matrix: dev/staging/prod)
+
 - Checkout code
 - Setup Terraform v1.9.0
 - Format check (`terraform fmt -check`)
@@ -349,11 +390,13 @@ pre-commit autoupdate
 - Comment results on PR
 
 #### Job 2: Security Scan
+
 - `tfsec` - Terraform security scanner
 - `Checkov` - Policy-as-code scanner
 - Soft fail mode (non-blocking)
 
 #### Job 3-8: Plan & Apply Per Environment
+
 - **Dev:** Auto-apply on push to main
 - **Staging:** Auto-apply after dev success
 - **Prod:** Manual trigger with approval required
@@ -368,6 +411,7 @@ pre-commit autoupdate
    - `prod` (required reviewers, wait timer)
 
 2. **Secrets:**
+
    ```
    AWS_ROLE_ARN_DEV
    AWS_ROLE_ARN_STAGING
@@ -375,6 +419,7 @@ pre-commit autoupdate
    ```
 
 3. **OIDC Provider (AWS):**
+
 ```bash
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
@@ -383,6 +428,7 @@ aws iam create-open-id-connect-provider \
 ```
 
 4. **IAM Role Trust Policy:**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -409,27 +455,32 @@ aws iam create-open-id-connect-provider \
 ### Workflow Triggers
 
 #### 1. Pull Request
+
 ```yaml
 on:
   pull_request:
     branches: [main]
     paths: ['terraform-eks/**']
 ```
+
 - Runs validation and security scans
 - Comments plan results on PR
 - No apply actions
 
 #### 2. Push to Main
+
 ```yaml
 on:
   push:
     branches: [main]
     paths: ['terraform-eks/**']
 ```
+
 - Auto-deploys to dev → staging
 - Production requires manual trigger
 
 #### 3. Manual Dispatch
+
 ```yaml
 on:
   workflow_dispatch:
@@ -438,10 +489,12 @@ on:
         type: choice
         options: [dev, staging, prod]
 ```
+
 - Allows manual deployment to any environment
 - Used for hotfixes or production releases
 
 ### Benefits
+
 - ✅ Automated testing on every PR
 - ✅ Consistent deployment process
 - ✅ Environment progression (dev → staging → prod)
@@ -453,11 +506,13 @@ on:
 ### Setup Instructions
 
 #### 1. Enable OIDC in AWS
+
 ```bash
 ./scripts/setup-github-oidc.sh
 ```
 
 #### 2. Configure GitHub Environments
+
 ```bash
 # Via GitHub UI:
 Settings → Environments → New environment
@@ -469,6 +524,7 @@ Settings → Environments → New environment
 ```
 
 #### 3. Add Secrets
+
 ```bash
 # Via GitHub UI:
 Settings → Secrets → Actions → New repository secret
@@ -478,6 +534,7 @@ AWS_ROLE_ARN_PROD: arn:aws:iam::372836560690:role/github-actions-prod
 ```
 
 #### 4. Test Workflow
+
 ```bash
 git checkout -b test/ci-pipeline
 git push origin test/ci-pipeline
@@ -491,9 +548,11 @@ git push origin test/ci-pipeline
 ### Completed READMEs
 
 #### 1. Secrets Manager Module ✅
+
 **File:** `terraform-eks/modules/secrets-manager/README.md`
 
 **Sections:**
+
 - Overview and features
 - Usage examples (basic + IRSA)
 - Input/output tables
@@ -503,9 +562,11 @@ git push origin test/ci-pipeline
 - Troubleshooting guide
 
 #### 2. EKS Module ✅
+
 **File:** `terraform-eks/modules/eks/README.md`
 
 **Sections:**
+
 - Architecture diagram
 - IRSA (IAM Roles for Service Accounts) guide
 - Security best practices (5 categories)
@@ -518,17 +579,20 @@ git push origin test/ci-pipeline
 ### Remaining Modules (7/13)
 
 **High Priority:**
+
 - [ ] `vpc` - Enhance existing README
 - [ ] `alb-controller` - Create comprehensive guide
 - [ ] `node-groups` - Auto-scaling documentation
 - [ ] `waf` - Security rules explanation
 
 **Medium Priority:**
+
 - [ ] `route53` - DNS management
 - [ ] `security-groups` - Network security rules
 - [ ] `iam` - Role and policy documentation
 
 **Low Priority:**
+
 - [ ] `eks-addons` - Add-on management
 - [ ] `ecr` - Container registry setup
 - [ ] `external-dns` - Automated DNS records
@@ -538,6 +602,7 @@ git push origin test/ci-pipeline
 ### Documentation Standards
 
 **Required Sections:**
+
 1. **Overview** - Brief module description
 2. **Features** - Bullet list of capabilities
 3. **Architecture** - Diagram (ASCII or mermaid)
@@ -549,6 +614,7 @@ git push origin test/ci-pipeline
 9. **References** - AWS docs, blog posts
 
 **Example Template:**
+
 ```markdown
 # Module Name
 
@@ -587,13 +653,17 @@ Solution...
 ## ⏳ 7. Pending Improvements
 
 ### Module Versioning (Low Priority)
+
 **When to Implement:**
+
 - Team size grows beyond 5 engineers
 - Multiple projects use same modules
 - Need strict version control
 
 **Options:**
+
 1. **Git Tags:**
+
 ```hcl
 module "vpc" {
   source = "git::https://github.com/TomJennyDev/devops.git//terraform-eks/modules/vpc?ref=v1.0.0"
@@ -601,6 +671,7 @@ module "vpc" {
 ```
 
 2. **Terraform Registry (Private):**
+
 ```hcl
 module "vpc" {
   source  = "app.terraform.io/myorg/vpc/aws"
@@ -609,6 +680,7 @@ module "vpc" {
 ```
 
 3. **Local Path (Current):**
+
 ```hcl
 module "vpc" {
   source = "../../modules/vpc"
@@ -620,14 +692,17 @@ module "vpc" {
 ---
 
 ### Automated Testing (Low Priority)
+
 **Framework:** Terratest (Go-based)
 
 **Test Categories:**
+
 1. **Unit Tests** - Module validation
 2. **Integration Tests** - Multi-module deployment
 3. **End-to-End Tests** - Full stack validation
 
 **Example Test Structure:**
+
 ```
 test/
 ├── unit/
@@ -641,6 +716,7 @@ test/
 ```
 
 **Sample Test (Go):**
+
 ```go
 func TestVPCModule(t *testing.T) {
     terraformOptions := &terraform.Options{
@@ -659,6 +735,7 @@ func TestVPCModule(t *testing.T) {
 ```
 
 **Setup Instructions (Future):**
+
 ```bash
 # Install Go
 brew install go
@@ -675,6 +752,7 @@ cd test && go test -v -timeout 30m
 ## 📈 Infrastructure Quality Score
 
 ### Before Improvements: **7.5/10**
+
 ### After Improvements: **9.2/10** 🎉
 
 **Score Breakdown:**
@@ -690,6 +768,7 @@ cd test && go test -v -timeout 30m
 | **Testing** | 0/10 | 0/10 | - ⏳ |
 
 **Legend:**
+
 - ✅ Complete
 - 🟡 In Progress
 - ⏳ Pending
@@ -699,13 +778,16 @@ cd test && go test -v -timeout 30m
 ## 🚀 Next Actions
 
 ### Immediate (This Week)
+
 1. ✅ Test pre-commit hooks locally
+
 ```bash
 pre-commit install
 pre-commit run --all-files
 ```
 
 2. ✅ Setup GitHub OIDC provider
+
 ```bash
 ./scripts/setup-github-oidc.sh
 ```
@@ -717,9 +799,11 @@ pre-commit run --all-files
 5. ✅ Test CI/CD pipeline with test PR
 
 ### Short-term (Next 2 Weeks)
+
 6. 🟡 Complete remaining module READMEs (7 modules)
 
 7. 🟡 Migrate secrets to AWS Secrets Manager
+
 ```bash
 # Create secrets
 terraform apply -target=module.secrets
@@ -729,6 +813,7 @@ terraform apply -target=module.secrets
 ```
 
 8. 🟡 Enable KMS encryption for state files
+
 ```bash
 # Create KMS key
 aws kms create-key --description "Terraform state"
@@ -737,6 +822,7 @@ aws kms create-key --description "Terraform state"
 ```
 
 ### Long-term (Next Month)
+
 9. ⏳ Implement module versioning (if team grows)
 
 10. ⏳ Setup Terratest framework and write tests
@@ -750,6 +836,7 @@ aws kms create-key --description "Terraform state"
 ## 📝 Commit Summary
 
 ### Files Modified (This Session)
+
 ```
 Modified:
 - terraform-eks/environments/dev/backend.tf
@@ -772,6 +859,7 @@ Total: 4 modified, 9 created = 13 files changed
 ```
 
 ### Commit Message (Suggested)
+
 ```
 feat: terraform infrastructure improvements - phase 1
 
@@ -817,6 +905,7 @@ Pending: Module versioning (low priority), Automated testing (low priority)
 ## 🎯 Success Metrics
 
 ### Quantifiable Improvements
+
 - **Security Posture:** +25% (state encryption + secret mgmt + validation)
 - **Code Quality:** +29% (pre-commit hooks + validation)
 - **Deployment Speed:** +80% (automated CI/CD vs manual)
@@ -824,6 +913,7 @@ Pending: Module versioning (low priority), Automated testing (low priority)
 - **Overall Infrastructure Score:** +22.7% (7.5 → 9.2)
 
 ### Risk Reduction
+
 - ✅ Eliminated hardcoded secrets in version control
 - ✅ Prevented invalid configurations via validation
 - ✅ Automated security scanning before deployment
@@ -835,12 +925,14 @@ Pending: Module versioning (low priority), Automated testing (low priority)
 ## 📞 Support
 
 **Questions or Issues?**
-- 📧 Infrastructure Team: devops@company.com
+
+- 📧 Infrastructure Team: <devops@company.com>
 - 💬 Slack: #infrastructure-help
 - 📝 Runbook: `docs/RUNBOOK.md`
 - 🎫 Tickets: JIRA board "INFRA"
 
 **Emergency Contacts:**
+
 - On-call Engineer: +1-555-0100
 - AWS Support: Case priority "Urgent"
 - Escalation: CTO (for production issues)

@@ -90,7 +90,7 @@ cat > "$ENV_FILE" << EOF
 # Generated: $(date)
 # Server: $ARGOCD_SERVER
 # Auth Method: $AUTH_METHOD
-# 
+#
 # ⚠️  SECURITY WARNING:
 # - Do not commit this file to version control
 # - Keep credentials secure and rotate regularly

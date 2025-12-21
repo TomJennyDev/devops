@@ -38,7 +38,7 @@ variable "cloudfront_price_class" {
   description = "Price class for CloudFront distribution (PriceClass_All, PriceClass_200, PriceClass_100)"
   type        = string
   default     = "PriceClass_100"
-  
+
   validation {
     condition     = contains(["PriceClass_All", "PriceClass_200", "PriceClass_100"], var.cloudfront_price_class)
     error_message = "Price class must be PriceClass_All, PriceClass_200, or PriceClass_100."
@@ -134,7 +134,7 @@ variable "geo_restriction_type" {
   description = "Geo restriction type (none, whitelist, blacklist)"
   type        = string
   default     = "none"
-  
+
   validation {
     condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction_type)
     error_message = "Geo restriction type must be none, whitelist, or blacklist."

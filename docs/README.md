@@ -5,18 +5,22 @@ Complete guide for EKS + ArgoCD deployment.
 ## Quick Start
 
 ### 1. Deploy EKS with Terraform
+
 📖 [TERRAFORM-DEPLOYMENT.md](./TERRAFORM-DEPLOYMENT.md)
 
 Deploy infrastructure (~20 phút):
+
 ```bash
 cd terraform-eks/environments/dev
 terraform apply
 ```
 
 ### 2. Deploy ArgoCD
+
 📖 [ARGOCD-DEPLOYMENT.md](./ARGOCD-DEPLOYMENT.md)
 
 Deploy ArgoCD (~10 phút):
+
 ```bash
 cd terraform-eks/scripts
 ./export-cluster-info.sh
@@ -25,11 +29,12 @@ cd terraform-eks/scripts
 
 ### 3. Access & Deploy Apps
 
-**ArgoCD URL:** https://argocd.do2506.click  
+**ArgoCD URL:** <https://argocd.do2506.click>  
 **Username:** admin  
 **Password:** (from script output)
 
 ### 4. Setup GitHub Actions CI/CD
+
 📖 [GITHUB-ACTIONS-ARGOCD.md](./GITHUB-ACTIONS-ARGOCD.md)
 
 Integrate ArgoCD with GitHub Actions for automated deployments.
@@ -88,6 +93,7 @@ Integrate ArgoCD with GitHub Actions for automated deployments.
 ## Costs
 
 **Monthly estimate (dev):**
+
 - EKS Control Plane: $73
 - 2x t3.medium nodes: $60
 - NAT Gateway: $32
@@ -97,5 +103,6 @@ Integrate ArgoCD with GitHub Actions for automated deployments.
 ## Support
 
 Need help? Check:
+
 - [Terraform troubleshooting](./TERRAFORM-DEPLOYMENT.md#troubleshooting)
 - [ArgoCD troubleshooting](./ARGOCD-DEPLOYMENT.md#troubleshooting)

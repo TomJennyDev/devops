@@ -6,21 +6,23 @@ Complete monitoring solution using **kube-prometheus-stack** (official Prometheu
 
 - **Chart**: kube-prometheus-stack
 - **Version**: 65.2.0
-- **Repository**: https://prometheus-community.github.io/helm-charts
-- **Source Code**: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
-- **ArtifactHub**: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+- **Repository**: <https://prometheus-community.github.io/helm-charts>
+- **Source Code**: <https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack>
+- **ArtifactHub**: <https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack>
 - **License**: Apache 2.0
 - **Maintained by**: Prometheus Community
 
-### Official Documentation:
-- **Prometheus**: https://prometheus.io/docs/
-- **Grafana**: https://grafana.com/docs/
-- **AlertManager**: https://prometheus.io/docs/alerting/latest/alertmanager/
-- **Prometheus Operator**: https://prometheus-operator.dev/
+### Official Documentation
+
+- **Prometheus**: <https://prometheus.io/docs/>
+- **Grafana**: <https://grafana.com/docs/>
+- **AlertManager**: <https://prometheus.io/docs/alerting/latest/alertmanager/>
+- **Prometheus Operator**: <https://prometheus-operator.dev/>
 
 ## 📦 What's Included
 
 **kube-prometheus-stack** includes:
+
 - **Prometheus Server** - Metrics collection & storage
 - **Grafana** - Visualization dashboards
 - **AlertManager** - Alert routing & notification
@@ -100,6 +102,7 @@ open http://localhost:9093
 ## 🎯 Environment Configurations
 
 ### Dev Environment
+
 ```yaml
 Prometheus:
   - Retention: 7 days
@@ -120,6 +123,7 @@ AlertManager:
 ```
 
 ### Staging Environment
+
 ```yaml
 Prometheus:
   - Retention: 15 days
@@ -140,6 +144,7 @@ AlertManager:
 ```
 
 ### Production Environment
+
 ```yaml
 Prometheus:
   - Retention: 30 days
@@ -175,21 +180,25 @@ Grafana comes with pre-configured dashboards:
 ## 🔍 Common Queries
 
 ### Pod CPU Usage
+
 ```promql
 rate(container_cpu_usage_seconds_total{pod="my-pod"}[5m])
 ```
 
 ### Pod Memory Usage
+
 ```promql
 container_memory_usage_bytes{pod="my-pod"}
 ```
 
 ### HTTP Request Rate
+
 ```promql
 rate(http_requests_total[5m])
 ```
 
 ### Pod Restart Count
+
 ```promql
 kube_pod_container_status_restarts_total
 ```

@@ -7,32 +7,38 @@ AWS WAF (Web Application Firewall) module bảo vệ ứng dụng khỏi các cu
 ## Tính năng chính
 
 ### 1. AWS Managed Rules
+
 - ✅ **Core Rule Set**: Bảo vệ OWASP Top 10
 - ✅ **Known Bad Inputs**: Chặn các pattern độc hại đã biết
 - ✅ **SQL Injection**: Chống SQL injection attacks
 - ✅ **Linux OS**: Bảo vệ khỏi Linux-specific attacks
 
 ### 2. Rate Limiting
+
 - Giới hạn requests từ 1 IP trong 5 phút
 - Ngăn chặn DDoS và brute force attacks
 - Cấu hình linh hoạt (default: 2000 req/5min)
 
 ### 3. Geo Blocking
+
 - Chặn traffic từ các quốc gia cụ thể
 - Sử dụng ISO 3166-1 alpha-2 codes
 - Example: `["CN", "RU", "KP"]`
 
 ### 4. IP Filtering
+
 - **Blacklist**: Chặn IPs cụ thể
 - **Whitelist**: Chỉ cho phép IPs cụ thể
 - Hỗ trợ CIDR notation
 
 ### 5. Custom Regex Patterns
+
 - Tạo rules dựa trên regex
 - Áp dụng cho URI paths
 - Chặn các patterns nguy hiểm
 
 ### 6. Logging & Monitoring
+
 - CloudWatch Logs integration
 - Redact sensitive fields (auth, cookies)
 - CloudWatch alarms cho blocked requests
@@ -40,11 +46,13 @@ AWS WAF (Web Application Firewall) module bảo vệ ứng dụng khỏi các cu
 ## Kiến trúc
 
 ### CloudFront WAF (Global)
+
 ```
 Users → CloudFront → WAF (us-east-1) → Origin (ALB)
 ```
 
 ### ALB WAF (Regional)
+
 ```
 Users → ALB → WAF (ap-southeast-1) → EKS Pods
 ```
@@ -147,6 +155,7 @@ terraform plan
 ```
 
 Expected output:
+
 ```
 # module.waf.aws_wafv2_web_acl.main[0] will be created
   + resource "aws_wafv2_web_acl" "main" {
@@ -361,6 +370,7 @@ waf_alarm_actions = [aws_sns_topic.waf_alerts.arn]
 **Problem**: Legitimate requests blocked
 
 **Solution**:
+
 ```bash
 # Check WAF logs
 aws logs filter-log-events \
@@ -377,6 +387,7 @@ waf_core_rule_excluded = ["RuleName"]
 **Problem**: Users getting rate limited
 
 **Solution**:
+
 ```hcl
 # Increase limit
 waf_rate_limit_value = 5000
@@ -390,6 +401,7 @@ waf_enable_rate_limit = false
 **Problem**: VPN users or travelers blocked
 
 **Solution**:
+
 ```hcl
 # Use IP whitelist instead
 waf_enable_ip_whitelist = true
@@ -401,6 +413,7 @@ waf_whitelist_ips = ["known_user_ips"]
 **Problem**: Costs higher than expected
 
 **Solution**:
+
 - Reduce sampled requests
 - Decrease log retention
 - Optimize rules (fewer rules = lower cost)

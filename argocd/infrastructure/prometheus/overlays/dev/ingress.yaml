@@ -13,7 +13,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/group.name: monitoring-dev
     alb.ingress.kubernetes.io/group.order: '10'
-    
+
     # Health Check
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
     alb.ingress.kubernetes.io/healthcheck-path: /api/health
@@ -21,12 +21,12 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
-    
+
     # HTTPS Configuration
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
     alb.ingress.kubernetes.io/ssl-redirect: '443'
-    
+
     # Tags
     alb.ingress.kubernetes.io/tags: Environment=dev,ManagedBy=argocd,Component=monitoring
 spec:
@@ -42,7 +42,7 @@ spec:
                 name: prometheus-grafana
                 port:
                   number: 80
-    
+
     # Prometheus
     - host: prometheus-dev.do2506.click
       http:
@@ -54,7 +54,7 @@ spec:
                 name: prometheus-kube-prometheus-prometheus
                 port:
                   number: 9090
-    
+
     # AlertManager
     - host: alertmanager-dev.do2506.click
       http:

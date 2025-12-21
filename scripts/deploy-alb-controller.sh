@@ -3,15 +3,15 @@
 # DEPLOY AWS LOAD BALANCER CONTROLLER VIA ARGOCD
 # ========================================
 # This script deploys ALB Controller via ArgoCD GitOps (Kustomize)
-# 
+#
 # ⚠️  USE CASE: Deploy/manage ALB Controller AFTER ArgoCD is running
 # ⚠️  NOT FOR: Initial ALB Controller deployment (before ArgoCD)
-# 
+#
 # For initial deployment (before ArgoCD):
 #   - Use Helm: helm install aws-load-balancer-controller...
 #   - Or Terraform: terraform apply -target=module.alb_controller
-# 
-# Prerequisites: 
+#
+# Prerequisites:
 #   - ArgoCD must be running
 #   - ArgoCD Projects deployed
 # ========================================

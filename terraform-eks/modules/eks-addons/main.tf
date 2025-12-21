@@ -27,7 +27,7 @@ resource "aws_eks_addon" "vpc_cni" {
   resolve_conflicts_on_update = "PRESERVE"
 
   tags = var.common_tags
-  
+
   lifecycle {
     ignore_changes = [modified_at]
   }
@@ -51,7 +51,7 @@ resource "aws_eks_addon" "coredns" {
   ]
 
   tags = var.common_tags
-  
+
   lifecycle {
     ignore_changes = [modified_at]
   }
@@ -69,7 +69,7 @@ resource "aws_eks_addon" "kube_proxy" {
   resolve_conflicts_on_update = "PRESERVE"
 
   tags = var.common_tags
-  
+
   lifecycle {
     ignore_changes = [modified_at]
   }
@@ -85,11 +85,11 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   addon_name               = "aws-ebs-csi-driver"
   addon_version            = var.ebs_csi_driver_version
   resolve_conflicts_on_update = "PRESERVE"
-  
+
   service_account_role_arn = var.ebs_csi_driver_role_arn
 
   tags = var.common_tags
-  
+
   lifecycle {
     ignore_changes = [modified_at]
   }

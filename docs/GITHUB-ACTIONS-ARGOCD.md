@@ -29,6 +29,7 @@ argocd repo list
 ```
 
 **Via UI:**
+
 1. Settings → Repositories → Connect Repo
 2. Method: HTTPS
 3. Project: default
@@ -70,16 +71,16 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  
+
   source:
     repoURL: https://github.com/TomJennyDev/flowise-gitops.git
     targetRevision: main
     path: overlays/dev
-  
+
   destination:
     server: https://kubernetes.default.svc
     namespace: flowise-dev
-  
+
   syncPolicy:
     automated:
       prune: true
@@ -107,16 +108,16 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  
+
   source:
     repoURL: https://github.com/TomJennyDev/flowise-gitops.git
     targetRevision: main
     path: overlays/staging
-  
+
   destination:
     server: https://kubernetes.default.svc
     namespace: flowise-staging
-  
+
   syncPolicy:
     automated:
       prune: true
@@ -136,16 +137,16 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  
+
   source:
     repoURL: https://github.com/TomJennyDev/flowise-gitops.git
     targetRevision: main
     path: overlays/production
-  
+
   destination:
     server: https://kubernetes.default.svc
     namespace: flowise-production
-  
+
   syncPolicy:
     automated:
       prune: true
@@ -190,6 +191,7 @@ Add these secrets to GitHub repository:
 | `AWS_ROLE_TO_ASSUME` | `arn:aws:iam::xxx:role/github-actions` | For OIDC auth |
 
 **Add via GitHub UI:**
+
 1. Repository → Settings → Secrets and variables → Actions
 2. Click "New repository secret"
 3. Add each secret above
@@ -447,6 +449,7 @@ kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
 ### Sync Policy
 
 **Dev/Staging:** Automated sync with selfHeal
+
 ```yaml
 syncPolicy:
   automated:
@@ -455,6 +458,7 @@ syncPolicy:
 ```
 
 **Production:** Manual approval
+
 ```yaml
 syncPolicy:
   automated:

@@ -204,7 +204,7 @@ resource "aws_cloudfront_distribution" "main" {
   # ============================================
   dynamic "origin" {
     for_each = var.enable_s3_origin ? [1] : []
-    
+
     content {
       domain_name = var.s3_bucket_domain_name
       origin_id   = "s3-${var.environment}"
@@ -234,7 +234,7 @@ resource "aws_cloudfront_distribution" "main" {
     # Function associations (optional)
     dynamic "function_association" {
       for_each = var.viewer_request_function_arn != "" ? [1] : []
-      
+
       content {
         event_type   = "viewer-request"
         function_arn = var.viewer_request_function_arn
@@ -245,7 +245,7 @@ resource "aws_cloudfront_distribution" "main" {
   # ============================================
   # ORDERED CACHE BEHAVIORS
   # ============================================
-  
+
   # Static assets: images, css, js (aggressive caching)
   ordered_cache_behavior {
     path_pattern     = "/static/*"
@@ -327,7 +327,7 @@ resource "aws_cloudfront_distribution" "main" {
   # ============================================
   dynamic "logging_config" {
     for_each = var.enable_logging ? [1] : []
-    
+
     content {
       include_cookies = false
       bucket          = var.logging_bucket
@@ -391,7 +391,7 @@ resource "aws_cloudfront_function" "url_rewrite" {
     function handler(event) {
       var request = event.request;
       var uri = request.uri;
-      
+
       // Redirect /old-path to /new-path
       if (uri === '/old-path') {
         var response = {
@@ -403,14 +403,14 @@ resource "aws_cloudfront_function" "url_rewrite" {
         };
         return response;
       }
-      
+
       // Add trailing slash to directories
       if (uri.endsWith('/')) {
         request.uri += 'index.html';
       } else if (!uri.includes('.')) {
         request.uri += '/index.html';
       }
-      
+
       return request;
     }
   EOT

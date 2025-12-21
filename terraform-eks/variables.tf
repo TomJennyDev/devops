@@ -3,7 +3,7 @@ variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
   default     = "us-west-2"
-  
+
   validation {
     condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.aws_region))
     error_message = "AWS region must be valid format (e.g., us-west-2, ap-southeast-1)."
@@ -15,7 +15,7 @@ variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
   default     = "my-eks-cluster"
-  
+
   validation {
     condition     = can(regex("^[a-zA-Z][a-zA-Z0-9-]{0,99}$", var.cluster_name))
     error_message = "Cluster name must start with letter, contain only alphanumeric and hyphens, max 100 chars."
@@ -26,7 +26,7 @@ variable "cluster_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
   default     = "1.34"
-  
+
   validation {
     condition     = can(regex("^1\\.(2[89]|3[0-9])$", var.cluster_version))
     error_message = "Cluster version must be between 1.28 and 1.39 (current supported versions)."
@@ -38,7 +38,7 @@ variable "vpc_cidr" {
   description = "CIDR block for VPC"
   type        = string
   default     = "10.0.0.0/16"
-  
+
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
     error_message = "VPC CIDR must be a valid IPv4 CIDR block."
@@ -67,7 +67,7 @@ variable "public_subnet_count" {
   description = "Number of public subnets"
   type        = number
   default     = 3
-  
+
   validation {
     condition     = var.public_subnet_count >= 2 && var.public_subnet_count <= 6
     error_message = "Public subnet count must be between 2 and 6 for proper HA setup."
@@ -78,7 +78,7 @@ variable "private_subnet_count" {
   description = "Number of private subnets"
   type        = number
   default     = 3
-  
+
   validation {
     condition     = var.private_subnet_count >= 2 && var.private_subnet_count <= 6
     error_message = "Private subnet count must be between 2 and 6 for proper HA setup."
@@ -95,7 +95,7 @@ variable "nat_gateway_count" {
   description = "Number of NAT Gateways (1 for cost saving, 3 for HA)"
   type        = number
   default     = 1
-  
+
   validation {
     condition     = var.nat_gateway_count >= 1 && var.nat_gateway_count <= 3
     error_message = "NAT Gateway count must be 1 (cost-effective) or 3 (high availability)."
@@ -350,37 +350,37 @@ variable "limit_ranges" {
   description = "LimitRange configurations per namespace"
   type = map(object({
     namespace = string
-    
+
     container_default_limit_cpu      = string
     container_default_limit_memory   = string
     container_default_request_cpu    = string
     container_default_request_memory = string
-    
+
     container_max_cpu    = string
     container_max_memory = string
     container_min_cpu    = string
     container_min_memory = string
-    
+
     pod_max_cpu    = string
     pod_max_memory = string
     pod_min_cpu    = string
     pod_min_memory = string
   }))
-  
+
   default = {
     default = {
       namespace = "default"
-      
+
       container_default_limit_cpu      = "500m"
       container_default_limit_memory   = "512Mi"
       container_default_request_cpu    = "100m"
       container_default_request_memory = "128Mi"
-      
+
       container_max_cpu    = "2000m"
       container_max_memory = "2Gi"
       container_min_cpu    = "50m"
       container_min_memory = "64Mi"
-      
+
       pod_max_cpu    = "4000m"
       pod_max_memory = "4Gi"
       pod_min_cpu    = "50m"
@@ -393,32 +393,32 @@ variable "resource_quotas" {
   description = "ResourceQuota configurations per namespace"
   type = map(object({
     namespace = string
-    
+
     requests_cpu    = string
     requests_memory = string
     limits_cpu      = string
     limits_memory   = string
-    
+
     max_pods     = number
     max_services = number
     max_pvcs     = number
-    
+
     requests_storage = string
   }))
-  
+
   default = {
     default = {
       namespace = "default"
-      
+
       requests_cpu    = "2000m"
       requests_memory = "4Gi"
       limits_cpu      = "4000m"
       limits_memory   = "8Gi"
-      
+
       max_pods     = 20
       max_services = 10
       max_pvcs     = 5
-      
+
       requests_storage = "50Gi"
     }
   }
@@ -432,7 +432,7 @@ variable "priority_classes" {
     description        = optional(string, "")
     preemption_policy  = optional(string, "PreemptLowerPriority")
   }))
-  
+
   default = {
     high-priority = {
       value       = 1000
@@ -457,7 +457,7 @@ variable "pod_disruption_budgets" {
     min_available    = optional(string)
     selector_labels  = map(string)
   }))
-  
+
   default = {}
 }
 

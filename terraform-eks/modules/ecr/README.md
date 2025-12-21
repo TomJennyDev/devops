@@ -126,6 +126,7 @@ Module tự động tạo 2 lifecycle rules:
 ## Image Scanning
 
 Khi `scan_on_push = true`:
+
 - Mỗi image được push sẽ tự động scan vulnerabilities
 - Xem scan results: `aws ecr describe-image-scan-findings --repository-name <repo> --image-id imageTag=<tag>`
 - Integration với Security Hub để centralized monitoring
@@ -184,6 +185,7 @@ repositories = {
 ## Pull Through Cache
 
 Cache images từ public registries để:
+
 - Giảm rate limits (Docker Hub: 100 pulls/6h → unlimited)
 - Tăng tốc độ pull (cache ở region gần)
 - Improve availability (không phụ thuộc external registry)
@@ -203,6 +205,7 @@ pull_through_cache_rules = {
 ```
 
 Usage:
+
 ```bash
 # Instead of: docker pull nginx:latest
 docker pull <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/docker-hub/nginx:latest
@@ -211,12 +214,14 @@ docker pull <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/docker-hub/nginx:l
 ## Security Best Practices
 
 ### Development
+
 - ✅ `image_tag_mutability = "MUTABLE"` - Allow tag updates
 - ✅ `scan_on_push = true` - Always scan
 - ✅ `max_image_count = 20` - Keep fewer images
 - ✅ `untagged_days = 3` - Quick cleanup
 
 ### Production
+
 - ✅ `image_tag_mutability = "IMMUTABLE"` - Prevent tag overwrites
 - ✅ `scan_on_push = true` - Always scan
 - ✅ `max_image_count = 100` - Keep more for rollback
@@ -232,6 +237,7 @@ docker pull <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/docker-hub/nginx:l
 - **Pull Through Cache**: Reduce external data transfer costs
 
 Example costs:
+
 - 10 repos × 10 images × 500 MB = 50 GB = **$5/month**
 - With lifecycle (keep last 3): 10 repos × 3 images × 500 MB = 15 GB = **$1.50/month**
 
@@ -256,6 +262,7 @@ aws ecr get-lifecycle-policy --repository-name flowise-server
 ## Troubleshooting
 
 ### Error: "no basic auth credentials"
+
 ```bash
 # Re-authenticate (credentials expire after 12 hours)
 aws ecr get-login-password --region ap-southeast-1 | \
@@ -263,10 +270,12 @@ aws ecr get-login-password --region ap-southeast-1 | \
 ```
 
 ### Error: "image with tag already exists"
+
 - If `image_tag_mutability = "IMMUTABLE"`: Use different tag
 - If `image_tag_mutability = "MUTABLE"`: Push will overwrite
 
 ### Scan findings not showing
+
 - Wait up to 15 minutes after push
 - Check scan status: `aws ecr describe-images --repository-name <repo>`
 

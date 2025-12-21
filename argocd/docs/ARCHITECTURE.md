@@ -6,7 +6,7 @@ Giải thích **TẠI SAO** phải tạo cấu trúc này và **TÁC DỤNG** c�
 
 ## 🎯 Vấn đề cần giải quyết
 
-### ❌ Cách cũ (không tốt):
+### ❌ Cách cũ (không tốt)
 
 ```bash
 # Cài bằng Helm trực tiếp
@@ -24,7 +24,7 @@ helm install prometheus prometheus-community/kube-prometheus-stack \
 # 5. Không có audit trail
 ```
 
-### ✅ Cách mới (GitOps):
+### ✅ Cách mới (GitOps)
 
 ```bash
 # Chỉ cần 1 command
@@ -43,7 +43,7 @@ kubectl apply -f app-of-apps-kustomize-dev.yaml
 
 ## 📂 Cấu trúc và Lý do
 
-### Cấu trúc tổng quan:
+### Cấu trúc tổng quan
 
 ```
 argocd/
@@ -75,10 +75,12 @@ argocd/
 **Tác dụng:** Entry point để deploy TẤT CẢ apps cho Dev environment
 
 **Tại sao cần:**
+
 - ❌ **Không có:** Phải `kubectl apply` từng app một → mất thời gian
 - ✅ **Có:** Deploy tất cả apps bằng 1 command → nhanh, đồng bộ
 
 **Nội dung:**
+
 ```yaml
 # File này là "master app" quản lý các apps khác
 apiVersion: argoproj.io/v1alpha1
@@ -94,7 +96,8 @@ spec:
 ```
 
 **Pattern:** App of Apps
-- **Nguồn:** https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+
+- **Nguồn:** <https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/>
 - **Tại sao:** Quản lý nhiều apps như 1 đơn vị duy nhất
 - **Lợi ích:** Bootstrap cả cluster chỉ với 1 file
 
@@ -105,10 +108,12 @@ spec:
 **Tác dụng:** Template chung cho Prometheus Application (dùng cho tất cả environments)
 
 **Tại sao cần:**
+
 - ❌ **Không có:** Phải duplicate code cho dev/staging/prod → vi phạm DRY principle
 - ✅ **Có:** Viết 1 lần, override chỗ khác biệt → maintainable
 
 **Nội dung:**
+
 ```yaml
 # Template này chứa phần GIỐNG NHAU giữa dev/staging/prod
 apiVersion: argoproj.io/v1alpha1
@@ -130,6 +135,7 @@ spec:
 ```
 
 **Pattern:** DRY (Don't Repeat Yourself)
+
 - **Lợi ích:** Sửa 1 chỗ → apply cho tất cả environments
 - **Example:** Upgrade chart từ 65.2.0 → 66.0.0 → chỉ sửa base, tất cả envs được upgrade
 
@@ -140,10 +146,12 @@ spec:
 **Tác dụng:** Kustomize manifest cho base layer
 
 **Tại sao cần:**
+
 - Kustomize yêu cầu file này để biết resources nào cần load
 - Định nghĩa namespace chung
 
 **Nội dung:**
+
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -163,12 +171,14 @@ resources:
 **Tác dụng:** Customize base template cho Dev environment
 
 **Tại sao cần:**
+
 - ❌ **Không có:** Dev và Prod dùng cấu hình giống nhau → không hợp lý
   - Dev cần resources thấp, Prod cần resources cao
   - Dev có thể auto-sync, Prod cần manual approve
 - ✅ **Có:** Mỗi environment có config phù hợp
 
 **Nội dung:**
+
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -184,13 +194,13 @@ patches:  # Override những gì khác biệt
       - op: replace
         path: /metadata/name
         value: prometheus-dev
-      
+
       # Add label environment
       - op: add
         path: /metadata/labels
         value:
           environment: dev
-      
+
       # Đổi values file: dev-values.yaml
       - op: replace
         path: /spec/sources/0/helm/valueFiles/0
@@ -198,9 +208,10 @@ patches:  # Override những gì khác biệt
 ```
 
 **Pattern:** Kustomize Overlays
-- **Nguồn:** https://kubectl.docs.kubernetes.io/references/kustomize/glossary/#overlay
+
+- **Nguồn:** <https://kubectl.docs.kubernetes.io/references/kustomize/glossary/#overlay>
 - **Lợi ích:** Inheritance + Customization
-- **Format:** JSON Patch (RFC 6902) - https://tools.ietf.org/html/rfc6902
+- **Format:** JSON Patch (RFC 6902) - <https://tools.ietf.org/html/rfc6902>
 
 ---
 
@@ -209,11 +220,13 @@ patches:  # Override những gì khác biệt
 **Tác dụng:** Prometheus configuration cho Dev environment
 
 **Tại sao cần:**
+
 - Tách configuration ra khỏi application definition
 - Dễ review changes (chỉ xem config, không lẫn với infrastructure code)
 - Reusable cho Helm upgrade trực tiếp (nếu cần)
 
 **Nội dung:**
+
 ```yaml
 # Dev: Low resources, short retention (cost optimization)
 prometheus:
@@ -233,6 +246,7 @@ grafana:
 ```
 
 **So sánh với Prod:**
+
 ```yaml
 # Prod: High resources, long retention (HA + history)
 prometheus:
@@ -252,6 +266,7 @@ grafana:
 ```
 
 **Tại sao tách file:**
+
 - ✅ Dễ so sánh diff giữa environments
 - ✅ Dễ review trong Pull Request
 - ✅ Có thể test với Helm trước khi commit
@@ -263,10 +278,12 @@ grafana:
 **Tác dụng:** Reference đầy đủ ALL options từ official chart (5413 dòng)
 
 **Tại sao cần:**
+
 - ❌ **Không có:** Phải mở browser, search docs, copy/paste → chậm
 - ✅ **Có:** Tất cả options trong 1 file local → search nhanh
 
 **Cách dùng:**
+
 ```bash
 # Tìm option cần customize
 grep -n "retention" default-values-reference.yaml
@@ -278,7 +295,8 @@ grep -n "retention" default-values-reference.yaml
 # Copy structure vào dev-values.yaml và customize
 ```
 
-**Nguồn:** 
+**Nguồn:**
+
 ```bash
 helm show values prometheus-community/kube-prometheus-stack > default-values-reference.yaml
 ```
@@ -378,6 +396,7 @@ helm show values prometheus-community/kube-prometheus-stack > default-values-ref
 **Giải quyết:** Deploy multiple apps as a unit
 
 **Ví dụ thực tế:**
+
 ```bash
 # Không có App of Apps:
 kubectl apply -f prometheus.yaml
@@ -395,6 +414,7 @@ kubectl apply -f app-of-apps-dev.yaml  # Deploy tất cả
 **Giải quyết:** Share common config
 
 **Ví dụ thực tế:**
+
 ```yaml
 # Chart version upgrade
 # Không có base: Sửa 3 files (dev, staging, prod)
@@ -406,6 +426,7 @@ kubectl apply -f app-of-apps-dev.yaml  # Deploy tất cả
 **Giải quyết:** Environment-specific customization
 
 **Ví dụ thực tế:**
+
 ```yaml
 Dev:
   - 1 replica (đủ dùng)
@@ -425,6 +446,7 @@ Prod:
 **Giải quyết:** Separate configuration from code
 
 **Ví dụ thực tế:**
+
 ```bash
 # Developer muốn review change
 git diff dev-values.yaml
@@ -441,30 +463,35 @@ git diff dev-values.yaml
 ## 💡 Best Practices được apply
 
 ### 1. **GitOps**
-- **Source:** https://www.gitops.tech/
+
+- **Source:** <https://www.gitops.tech/>
 - **Benefit:** Git = Single source of truth
 - **Files:** Tất cả configs trong Git
 
 ### 2. **DRY (Don't Repeat Yourself)**
-- **Source:** https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+
+- **Source:** <https://en.wikipedia.org/wiki/Don%27t_repeat_yourself>
 - **Benefit:** Maintainable, less bugs
 - **Files:** base/ chứa common code
 
 ### 3. **Separation of Concerns**
-- **Source:** https://en.wikipedia.org/wiki/Separation_of_concerns
+
+- **Source:** <https://en.wikipedia.org/wiki/Separation_of_concerns>
 - **Benefit:** Easy to understand, test, debug
-- **Files:** 
+- **Files:**
   - App definition: system-apps-kustomize/
   - Configuration: helm-values/
   - Entry points: app-of-apps-*.yaml
 
 ### 4. **Infrastructure as Code**
-- **Source:** https://www.terraform.io/use-cases/infrastructure-as-code
+
+- **Source:** <https://www.terraform.io/use-cases/infrastructure-as-code>
 - **Benefit:** Version control, reproducible, auditable
 - **Files:** Tất cả YAML files
 
 ### 5. **Environment Parity**
-- **Source:** https://12factor.net/dev-prod-parity
+
+- **Source:** <https://12factor.net/dev-prod-parity>
 - **Benefit:** Dev gần giống Prod → ít bugs
 - **Files:** base/ giống nhau, overlays/ khác biệt tối thiểu
 
@@ -473,6 +500,7 @@ git diff dev-values.yaml
 ## 🔍 So sánh với các approaches khác
 
 ### Approach 1: Manual Helm (❌ Không tốt)
+
 ```bash
 # Dev
 helm install prometheus ... --set retention=7d --set replicas=1
@@ -491,6 +519,7 @@ helm install prometheus ... --set retention=30d --set replicas=3
 ```
 
 ### Approach 2: Helm + Values files (🟡 OK nhưng chưa tốt)
+
 ```bash
 # Có values files nhưng deploy bằng Helm CLI
 helm install prometheus -f dev-values.yaml
@@ -502,6 +531,7 @@ helm install prometheus -f dev-values.yaml
 ```
 
 ### Approach 3: ArgoCD + Helm + Kustomize (✅ Tốt nhất)
+
 ```bash
 # Deploy 1 lần, ArgoCD tự động sync mãi mãi
 kubectl apply -f app-of-apps-dev.yaml
@@ -519,14 +549,16 @@ kubectl apply -f app-of-apps-dev.yaml
 
 ## 📊 Metrics & Benefits
 
-### Trước khi có cấu trúc này:
+### Trước khi có cấu trúc này
+
 - ⏱️ Deploy time: 30-60 phút (manual, error-prone)
 - 🐛 Config drift: Thường xuyên (dev ≠ prod)
 - 📝 Documentation: Outdated (docs ≠ actual state)
 - 🔄 Rollback: Khó (không biết config cũ như thế nào)
 - 👥 Collaboration: Khó (không có review process)
 
-### Sau khi có cấu trúc này:
+### Sau khi có cấu trúc này
+
 - ⏱️ Deploy time: 5-10 phút (automated)
 - 🐛 Config drift: Không có (Git = source of truth)
 - 📝 Documentation: Always updated (code = docs)
@@ -546,7 +578,8 @@ kubectl apply -f app-of-apps-dev.yaml
 | **helm-values/*.yaml** | Prometheus config | Tách config khỏi code | Separation of Concerns |
 | **default-values-reference.yaml** | Full chart options | Reference nhanh | Documentation |
 
-**Cốt lõi:** 
+**Cốt lõi:**
+
 - 📝 **Write once** (base)
 - 🔧 **Customize minimal** (overlays)
 - 🔄 **Auto sync forever** (ArgoCD)
@@ -555,6 +588,7 @@ kubectl apply -f app-of-apps-dev.yaml
 ---
 
 **Đọc tiếp:**
+
 - GETTING-STARTED.md → Cách deploy thực tế
 - PROMETHEUS-README.md → Chi tiết về stack
 - SOURCES.md → Tài liệu chính thức

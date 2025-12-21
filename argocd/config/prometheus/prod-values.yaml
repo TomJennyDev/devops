@@ -14,7 +14,7 @@ prometheus:
     # Retention & Storage
     retention: 30d  # Prod: 30 days retention
     retentionSize: "50GB"
-    
+
     # Resources - Prod: High resources
     resources:
       requests:
@@ -23,7 +23,7 @@ prometheus:
       limits:
         cpu: 2000m
         memory: 8Gi
-    
+
     # Storage
     storageSpec:
       volumeClaimTemplate:
@@ -33,19 +33,19 @@ prometheus:
             requests:
               storage: 100Gi  # Prod: 100GB storage
           storageClassName: gp3
-    
+
     # Scrape interval
     scrapeInterval: 15s  # Prod: 15s (more frequent)
     evaluationInterval: 15s
-    
+
     # Service Monitor selectors
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
-    
+
     # Replicas - HA
     replicas: 3  # Prod: 3 replicas for HA
-    
+
     # Pod anti-affinity
     affinity:
       podAntiAffinity:
@@ -57,7 +57,7 @@ prometheus:
                   values:
                     - prometheus
             topologyKey: kubernetes.io/hostname
-    
+
     # Pod disruption budget
     podDisruptionBudget:
       enabled: true
@@ -68,10 +68,10 @@ prometheus:
 # ========================================
 grafana:
   enabled: true
-  
+
   # Admin credentials - Use Sealed Secrets!
   adminPassword: "REPLACE_WITH_SEALED_SECRET"
-  
+
   # Resources - Prod: High resources
   resources:
     requests:
@@ -80,18 +80,18 @@ grafana:
     limits:
       cpu: 1000m
       memory: 2Gi
-  
+
   # Persistence
   persistence:
     enabled: true
     size: 20Gi  # Prod: 20GB
     storageClassName: gp3
-  
+
   # Service type
   service:
     type: ClusterIP
     port: 80
-  
+
   # Ingress with ALB
   ingress:
     enabled: true
@@ -108,14 +108,14 @@ grafana:
       - secretName: grafana-tls
         hosts:
           - grafana.example.com
-  
+
   # Default dashboards
   defaultDashboardsEnabled: true
   defaultDashboardsTimezone: Asia/Singapore
-  
+
   # Replicas - HA
   replicas: 3  # Prod: 3 replicas for HA
-  
+
   # Pod anti-affinity
   affinity:
     podAntiAffinity:
@@ -127,7 +127,7 @@ grafana:
                 values:
                   - grafana
           topologyKey: kubernetes.io/hostname
-  
+
   # Grafana config
   grafana.ini:
     server:
@@ -149,7 +149,7 @@ grafana:
 # ========================================
 alertmanager:
   enabled: true
-  
+
   alertmanagerSpec:
     # Resources - Prod: High
     resources:
@@ -159,7 +159,7 @@ alertmanager:
       limits:
         cpu: 500m
         memory: 1Gi
-    
+
     # Storage
     storage:
       volumeClaimTemplate:
@@ -169,9 +169,9 @@ alertmanager:
             requests:
               storage: 20Gi
           storageClassName: gp3
-    
+
     replicas: 3  # Prod: 3 replicas for HA
-    
+
     # Pod anti-affinity
     affinity:
       podAntiAffinity:
@@ -183,7 +183,7 @@ alertmanager:
                   values:
                     - alertmanager
             topologyKey: kubernetes.io/hostname
-  
+
   # Alert configuration - Production
   config:
     global:
@@ -228,7 +228,7 @@ alertmanager:
 # ========================================
 nodeExporter:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 200m
@@ -242,7 +242,7 @@ nodeExporter:
 # ========================================
 kubeStateMetrics:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 200m
@@ -250,7 +250,7 @@ kubeStateMetrics:
     limits:
       cpu: 500m
       memory: 1Gi
-  
+
   replicas: 2  # Prod: 2 replicas for HA
 
 # ========================================
@@ -258,7 +258,7 @@ kubeStateMetrics:
 # ========================================
 prometheusOperator:
   enabled: true
-  
+
   resources:
     requests:
       cpu: 400m
@@ -266,7 +266,7 @@ prometheusOperator:
     limits:
       cpu: 800m
       memory: 1Gi
-  
+
   admissionWebhooks:
     enabled: true
     patch:

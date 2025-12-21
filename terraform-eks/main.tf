@@ -34,7 +34,7 @@ module "vpc" {
 # ========================================
 module "iam" {
   source = "./modules/iam"
-  
+
   cluster_name = var.cluster_name
   common_tags  = var.common_tags
 }
@@ -44,7 +44,7 @@ module "iam" {
 # ========================================
 module "security_groups" {
   source = "./modules/security-groups"
-  
+
   cluster_name            = var.cluster_name
   vpc_id                  = module.vpc.vpc_id
   enable_node_ssh_access  = var.enable_node_ssh_access
@@ -57,7 +57,7 @@ module "security_groups" {
 # ========================================
 module "eks" {
   source = "./modules/eks"
-  
+
   cluster_name                         = var.cluster_name
   cluster_version                      = var.cluster_version
   cluster_role_arn                     = module.iam.cluster_role_arn
@@ -73,7 +73,7 @@ module "eks" {
   kube_proxy_version                   = var.kube_proxy_version
   enable_cluster_addons                = var.enable_cluster_addons
   common_tags                          = var.common_tags
-  
+
   depends_on = [module.iam, module.security_groups]
 }
 
@@ -82,7 +82,7 @@ module "eks" {
 # ========================================
 module "node_groups" {
   source = "./modules/node-groups"
-  
+
   cluster_name              = var.cluster_name
   cluster_version           = var.cluster_version
   node_group_name           = var.node_group_name
@@ -100,7 +100,7 @@ module "node_groups" {
   enable_node_ssh_access    = var.enable_node_ssh_access
   node_ssh_key_name         = var.node_ssh_key_name
   common_tags               = var.common_tags
-  
+
   depends_on = [module.eks]
 }
 
@@ -154,7 +154,7 @@ resource "aws_iam_role" "ebs_csi_driver" {
   assume_role_policy = data.aws_iam_policy_document.ebs_csi_driver_assume_role.json
 
   tags = var.common_tags
-  
+
   depends_on = [module.eks]
 }
 
@@ -168,13 +168,13 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
 # ========================================
 module "alb_controller" {
   source = "./modules/alb-controller"
-  
+
   cluster_name                        = var.cluster_name
   oidc_provider_arn                   = module.eks.oidc_provider_arn
   oidc_provider_url                   = module.eks.oidc_provider_url
   enable_aws_load_balancer_controller = var.enable_aws_load_balancer_controller
   common_tags                         = var.common_tags
-  
+
   depends_on = [module.eks]
 }
 
@@ -183,14 +183,14 @@ module "alb_controller" {
 # ========================================
 module "external_dns" {
   source = "./modules/external-dns"
-  
+
   cluster_name        = var.cluster_name
   oidc_provider_arn   = module.eks.oidc_provider_arn
   oidc_provider_url   = module.eks.oidc_provider_url
   enable_external_dns = var.enable_external_dns
   route53_zone_arns   = var.route53_zone_arns
   common_tags         = var.common_tags
-  
+
   depends_on = [module.eks]
 }
 
@@ -199,7 +199,7 @@ module "external_dns" {
 # ========================================
 module "route53" {
   source = "./modules/route53"
-  
+
   domain_name             = var.domain_name
   create_dns_records      = var.create_dns_records
   argocd_enabled          = var.argocd_dns_enabled
@@ -208,7 +208,7 @@ module "route53" {
   create_wildcard_record  = var.create_wildcard_dns_record
   wildcard_alb_dns_name   = var.wildcard_alb_dns_name
   wildcard_alb_zone_id    = var.wildcard_alb_zone_id
-  
+
   depends_on = [module.eks]
 }
 
@@ -218,24 +218,24 @@ module "route53" {
 # Separate from Route53 module to avoid circular dependency
 data "aws_route53_zone" "cloudfront" {
   count = var.create_dns_records && var.enable_cloudfront && length(var.cloudfront_aliases) > 0 ? 1 : 0
-  
+
   name         = var.domain_name
   private_zone = false
 }
 
 resource "aws_route53_record" "cloudfront" {
   for_each = var.create_dns_records && var.enable_cloudfront && length(var.cloudfront_aliases) > 0 ? toset(var.cloudfront_aliases) : []
-  
+
   zone_id = data.aws_route53_zone.cloudfront[0].zone_id
   name    = each.value
   type    = "A"
-  
+
   alias {
     name                   = module.cloudfront.cloudfront_domain_name
     zone_id                = module.cloudfront.cloudfront_hosted_zone_id
     evaluate_target_health = false
   }
-  
+
   depends_on = [module.cloudfront]
 }
 
@@ -244,9 +244,9 @@ resource "aws_route53_record" "cloudfront" {
 # ========================================
 module "resource_limits" {
   source = "./modules/resource-limits"
-  
+
   count = var.enable_resource_limits ? 1 : 0
-  
+
   namespaces              = var.resource_limit_namespaces
   limit_ranges            = var.limit_ranges
   resource_quotas         = var.resource_quotas
@@ -254,7 +254,7 @@ module "resource_limits" {
   pod_disruption_budgets  = var.pod_disruption_budgets
   enable_network_policies = var.enable_network_policies
   common_tags             = var.common_tags
-  
+
   depends_on = [module.eks, module.node_groups]
 }
 
@@ -263,7 +263,7 @@ module "resource_limits" {
 # ========================================
 module "waf" {
   source = "./modules/waf"
-  
+
   cluster_name                   = var.cluster_name
   environment                    = var.environment
   aws_region                     = var.aws_region
@@ -297,7 +297,7 @@ module "waf" {
 # ========================================
 module "cloudfront" {
   source = "./modules/cloudfront"
-  
+
   cluster_name                  = var.cluster_name
   environment                   = var.environment
   enable_cloudfront             = var.enable_cloudfront
@@ -326,6 +326,6 @@ module "cloudfront" {
   cache_hit_rate_threshold      = var.cloudfront_cache_hit_threshold
   alarm_actions                 = var.cloudfront_alarm_actions
   common_tags                   = var.common_tags
-  
+
   depends_on = [module.alb_controller, module.route53, module.waf]
 }

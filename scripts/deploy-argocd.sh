@@ -116,7 +116,7 @@ fi
 if [ ! -f "$ARGOCD_VALUES" ]; then
     echo -e "${RED}❌ ArgoCD values file not found: $ARGOCD_VALUES${NC}"
     exit 1
-fi 
+fi
 echo -e "${GREEN}✅ ArgoCD values file found${NC}"
 
 echo ""
@@ -128,7 +128,7 @@ echo -e "${YELLOW}📋 Step 2: Checking cert-manager (required for ArgoCD webhoo
 
 if kubectl get namespace cert-manager &> /dev/null; then
     echo -e "${GREEN}✅ cert-manager namespace exists${NC}"
-    
+
     # Check if cert-manager pods are running
     if kubectl get pods -n cert-manager -l app=cert-manager --no-headers 2>/dev/null | grep -q "Running"; then
         echo -e "${GREEN}✅ cert-manager is running${NC}"
@@ -140,11 +140,11 @@ if kubectl get namespace cert-manager &> /dev/null; then
 else
     echo -e "${YELLOW}⚠️  cert-manager not found. Installing...${NC}"
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
-    
+
     echo "Waiting for cert-manager to be ready..."
     sleep 10
     kubectl wait --for=condition=ready pod -l app=cert-manager -n cert-manager --timeout=300s
-    
+
     echo -e "${GREEN}✅ cert-manager installed${NC}"
 fi
 

@@ -52,25 +52,25 @@ resource "kubernetes_limit_range" "namespace_limits" {
     # Container limits
     limit {
       type = "Container"
-      
+
       # Default limits if not specified
       default = {
         cpu    = each.value.container_default_limit_cpu
         memory = each.value.container_default_limit_memory
       }
-      
+
       # Default requests if not specified
       default_request = {
         cpu    = each.value.container_default_request_cpu
         memory = each.value.container_default_request_memory
       }
-      
+
       # Maximum allowed
       max = {
         cpu    = each.value.container_max_cpu
         memory = each.value.container_max_memory
       }
-      
+
       # Minimum allowed
       min = {
         cpu    = each.value.container_min_cpu
@@ -81,12 +81,12 @@ resource "kubernetes_limit_range" "namespace_limits" {
     # Pod limits
     limit {
       type = "Pod"
-      
+
       max = {
         cpu    = each.value.pod_max_cpu
         memory = each.value.pod_max_memory
       }
-      
+
       min = {
         cpu    = each.value.pod_min_cpu
         memory = each.value.pod_min_memory
@@ -122,14 +122,14 @@ resource "kubernetes_resource_quota" "namespace_quotas" {
       "requests.memory" = each.value.requests_memory
       "limits.cpu"      = each.value.limits_cpu
       "limits.memory"   = each.value.limits_memory
-      
+
       # Object counts
       "pods"                   = each.value.max_pods
       "services"               = each.value.max_services
       "persistentvolumeclaims" = each.value.max_pvcs
       "configmaps"            = lookup(each.value, "max_configmaps", 50)
       "secrets"               = lookup(each.value, "max_secrets", 50)
-      
+
       # Storage
       "requests.storage" = each.value.requests_storage
     }

@@ -24,7 +24,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Kubernetes system components và AWS integrations
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Description |
 |-----------|------|------|-------------|----------------|-------------|
@@ -37,6 +37,7 @@ Dự án này có **7 namespaces chính**:
 | **aws-load-balancer-controller** | Deployment | 2 | 100m/pod | 256Mi/pod | ALB/NLB management |
 
 **Total Resources**:
+
 - Pods: ~12
 - CPU: ~550m
 - Memory: ~1.2Gi
@@ -49,7 +50,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: GitOps control plane for continuous deployment
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Storage | Description |
 |-----------|------|------|-------------|----------------|---------|-------------|
@@ -62,11 +63,13 @@ Dự án này có **7 namespaces chính**:
 | **argocd-notifications-controller** | Deployment | 1 | 100m | 128Mi | - | Notification delivery |
 
 **Total Resources**:
+
 - Pods: ~9
 - CPU: ~1600m
 - Memory: ~2.2Gi
 
 **Resource Quotas** (Terraform):
+
 - CPU Requests: 1500m
 - Memory Requests: 2Gi
 - CPU Limits: 3000m
@@ -74,6 +77,7 @@ Dự án này có **7 namespaces chính**:
 - Max Pods: 30
 
 **Access**:
+
 - Domain: `argocd.do2506.click`
 - Protocol: HTTPS (ALB + ACM certificate)
 
@@ -85,7 +89,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Observability stack (metrics, visualization, alerting)
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Storage | Description |
 |-----------|------|------|-------------|----------------|---------|-------------|
@@ -97,12 +101,14 @@ Dự án này có **7 namespaces chính**:
 | **prometheus-operator** | Deployment | 1 | 100m | 256Mi | - | CRD operator |
 
 **Total Resources**:
+
 - Pods: ~7
 - CPU: ~650m
 - Memory: ~1.5Gi
 - Storage: 35Gi (PVCs)
 
 **Resource Quotas** (Terraform):
+
 - CPU Requests: 800m
 - Memory Requests: 2Gi
 - CPU Limits: 1500m
@@ -110,11 +116,13 @@ Dự án này có **7 namespaces chính**:
 - Max Pods: 30
 
 **Prometheus Config**:
+
 - Retention: 15 days
 - Scrape Interval: 30s
 - Storage: AWS EBS GP2
 
 **Grafana**:
+
 - Admin: admin/admin123 (⚠️ Change in production)
 - Timezone: Asia/Singapore
 - Default dashboards: Enabled
@@ -127,7 +135,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Flowise application - Development environment
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Storage | Description |
 |-----------|------|------|-------------|----------------|---------|-------------|
@@ -138,12 +146,14 @@ Dự án này có **7 namespaces chính**:
 | **flowise-server-monitor** | ServiceMonitor | - | - | - | - | Prometheus metrics |
 
 **Total Resources**:
+
 - Pods: 4
 - CPU: 600m
 - Memory: 1.5Gi
 - Storage: 10Gi
 
 **Ingress Configuration**:
+
 - Domain: `flowise-dev.do2506.click`
 - ALB: `flowise-dev-alb`
 - SSL/TLS: ACM certificate
@@ -153,6 +163,7 @@ Dự án này có **7 namespaces chính**:
   - `/api` → flowise-server:3000
 
 **WAF Protection**:
+
 - ✅ SQL Injection protection
 - ✅ XSS protection
 - ✅ OWASP Top 10
@@ -161,11 +172,13 @@ Dự án này có **7 namespaces chính**:
 - ✅ Linux OS exploits
 
 **Monitoring**:
+
 - Metrics: `http://flowise-server:3000/api/v1/metrics`
 - ServiceMonitor: Auto-discovered by Prometheus
 - Scrape Interval: 30s
 
 **Environment Variables**:
+
 - Admin: admin/admin123 (⚠️ Change)
 - JWT Secret: change-me-in-production (⚠️ Change)
 - Database: SQLite (file-based)
@@ -178,7 +191,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Flowise application - Staging environment
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Storage | Description |
 |-----------|------|------|-------------|----------------|---------|-------------|
@@ -187,12 +200,14 @@ Dự án này có **7 namespaces chính**:
 | **flowise-ingress** | Ingress | - | - | - | - | ALB with SSL |
 
 **Total Resources**:
+
 - Pods: 4
 - CPU: 600m
 - Memory: 1.5Gi
 - Storage: 10Gi
 
 **Ingress Configuration**:
+
 - Domain: `flowise-staging.do2506.click`
 - ALB: `flowise-staging-alb`
 
@@ -204,7 +219,7 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Flowise application - Production environment
 
-### Components:
+### Components
 
 | Component | Type | Pods | CPU Request | Memory Request | Storage | Description |
 |-----------|------|------|-------------|----------------|---------|-------------|
@@ -213,12 +228,14 @@ Dự án này có **7 namespaces chính**:
 | **flowise-ingress** | Ingress | - | - | - | - | ALB with SSL |
 
 **Total Resources**:
+
 - Pods: 6
 - CPU: 1500m
 - Memory: 4.5Gi
 - Storage: 20Gi
 
 **Ingress Configuration**:
+
 - Domain: `flowise.do2506.click` or `flowise-prod.do2506.click`
 - ALB: `flowise-prod-alb`
 
@@ -230,7 +247,8 @@ Dự án này có **7 namespaces chính**:
 
 **Purpose**: Default namespace for ad-hoc testing and development
 
-### Resource Quotas (Terraform):
+### Resource Quotas (Terraform)
+
 - CPU Requests: 1000m
 - Memory Requests: 2Gi
 - CPU Limits: 2000m
@@ -245,6 +263,7 @@ Dự án này có **7 namespaces chính**:
 ## 🏗️ WORKLOAD CLASSIFICATION
 
 ### **Node-level Components** (DaemonSet)
+
 Chạy 1 pod trên mỗi node (2 pods total):
 
 - `kube-proxy` (kube-system)
@@ -257,6 +276,7 @@ Chạy 1 pod trên mỗi node (2 pods total):
 ---
 
 ### **Control Plane Components**
+
 Kubernetes và infrastructure management:
 
 - CoreDNS, EBS CSI Controller (kube-system)
@@ -269,6 +289,7 @@ Kubernetes và infrastructure management:
 ---
 
 ### **Application Workloads**
+
 Business applications và observability:
 
 - Flowise apps (dev/staging/prod)
@@ -280,7 +301,8 @@ Business applications và observability:
 
 ## 📈 CLUSTER RESOURCE SUMMARY
 
-### **Hardware Capacity**:
+### **Hardware Capacity**
+
 | Resource | Value |
 |----------|-------|
 | Nodes | 2× t3.large |
@@ -289,7 +311,8 @@ Business applications và observability:
 | Instance Type | t3.large |
 | Availability Zones | ap-southeast-1a, ap-southeast-1b |
 
-### **Resource Allocation**:
+### **Resource Allocation**
+
 | Metric | Value | % of Allocatable |
 |--------|-------|------------------|
 | **System Reserved** | ~800m CPU, ~2Gi RAM | - |
@@ -300,11 +323,13 @@ Business applications và observability:
 | **Total Storage (PVCs)** | ~125Gi EBS GP2 | - |
 
 > ⚠️ **Note**: CPU overcommit ở 167% là chấp nhận được vì:
+>
 > - Không phải tất cả pods chạy đồng thời ở max capacity
 > - Kubernetes scheduler sẽ evict pods khi cần
 > - Dev environment không cần strict guarantees
 
-### **Storage Breakdown**:
+### **Storage Breakdown**
+
 - Prometheus: 20Gi
 - Grafana: 10Gi
 - AlertManager: 5Gi
@@ -318,7 +343,8 @@ Business applications và observability:
 
 ## 🔐 SECURITY & NETWORKING
 
-### **WAF (Web Application Firewall)**:
+### **WAF (Web Application Firewall)**
+
 - **Scope**: REGIONAL (ap-southeast-1)
 - **Attached to**: ALB (flowise-dev-alb)
 - **Rules**:
@@ -328,7 +354,8 @@ Business applications và observability:
   4. Linux OS Protection
   5. Rate Limiting (2000 req/5min per IP)
 
-### **Network Architecture**:
+### **Network Architecture**
+
 ```
 Internet
   ↓
@@ -343,7 +370,8 @@ Service (ClusterIP)
 Pods
 ```
 
-### **SSL/TLS**:
+### **SSL/TLS**
+
 - Certificate: ACM (AWS Certificate Manager)
 - Domain: `*.do2506.click`
 - Protocol: TLS 1.2+
@@ -353,7 +381,8 @@ Pods
 
 ## 📊 MONITORING & OBSERVABILITY
 
-### **Metrics Collection**:
+### **Metrics Collection**
+
 - **Prometheus**: Collects metrics từ tất cả namespaces
 - **ServiceMonitor**: Auto-discovery via Prometheus Operator
 - **Exporters**:
@@ -361,7 +390,8 @@ Pods
   - Kube State Metrics (K8s objects)
   - Flowise Server (application metrics)
 
-### **Visualization**:
+### **Visualization**
+
 - **Grafana**: Pre-configured dashboards
 - **Access**: Port-forward hoặc Ingress (nếu enabled)
 - **Dashboards**:
@@ -370,7 +400,8 @@ Pods
   - Pod metrics
   - Application metrics
 
-### **Alerting**:
+### **Alerting**
+
 - **AlertManager**: Routes alerts đến Slack/Email
 - **Rules**: Prometheus alerting rules
 - **Integration**: Webhook, SNS, PagerDuty
@@ -379,7 +410,8 @@ Pods
 
 ## 🚀 DEPLOYMENT WORKFLOW
 
-### **GitOps Flow** (ArgoCD):
+### **GitOps Flow** (ArgoCD)
+
 ```
 1. Developer push code → GitHub
 2. ArgoCD detects changes
@@ -389,7 +421,8 @@ Pods
 6. Grafana visualizes data
 ```
 
-### **Namespace Creation Order**:
+### **Namespace Creation Order**
+
 1. `kube-system` - Tự động (Kubernetes)
 2. `argocd` - Terraform hoặc manual
 3. `monitoring` - ArgoCD Application
@@ -401,7 +434,7 @@ Pods
 
 ## 📝 RESOURCE LIMITS (Terraform Managed)
 
-### **LimitRange** per Namespace:
+### **LimitRange** per Namespace
 
 | Namespace | Container CPU Default | Container Memory Default | Pod Max CPU | Pod Max Memory |
 |-----------|----------------------|-------------------------|-------------|----------------|
@@ -409,7 +442,7 @@ Pods
 | **argocd** | 300m-800m | 512Mi-1Gi | 1500m | 2Gi |
 | **monitoring** | 200m-500m | 512Mi-1Gi | 1000m | 2Gi |
 
-### **ResourceQuota** per Namespace:
+### **ResourceQuota** per Namespace
 
 | Namespace | CPU Requests | Memory Requests | Max Pods | Storage |
 |-----------|-------------|----------------|----------|---------|
@@ -421,25 +454,29 @@ Pods
 
 ## 🎯 BEST PRACTICES
 
-### **Resource Management**:
+### **Resource Management**
+
 ✅ Luôn set resource requests & limits  
 ✅ Sử dụng PodDisruptionBudgets cho HA  
 ✅ Enable horizontal pod autoscaling (HPA)  
 ✅ Monitor resource usage qua Grafana  
 
-### **Security**:
+### **Security**
+
 ✅ WAF enabled cho public endpoints  
 ✅ Network policies cho namespace isolation  
 ✅ RBAC cho access control  
 ✅ Secrets management (Kubernetes Secrets hoặc AWS Secrets Manager)  
 
-### **High Availability**:
+### **High Availability**
+
 ✅ Multiple replicas cho critical components  
 ✅ Pod anti-affinity để spread across nodes  
 ✅ Health checks (liveness/readiness probes)  
 ✅ PVCs với backup strategy  
 
-### **Cost Optimization**:
+### **Cost Optimization**
+
 ✅ Single NAT Gateway (dev env)  
 ✅ t3.large instances (cost effective)  
 ✅ Spot instances cho non-critical workloads (staging)  
@@ -449,7 +486,8 @@ Pods
 
 ## 🔧 MAINTENANCE
 
-### **Scaling Nodes**:
+### **Scaling Nodes**
+
 ```bash
 # Update terraform.tfvars
 node_group_desired_size = 3
@@ -461,7 +499,8 @@ cd terraform-eks/environments/dev
 terraform apply
 ```
 
-### **Upgrading EKS**:
+### **Upgrading EKS**
+
 ```bash
 # Update cluster version in terraform.tfvars
 cluster_version = "1.35"
@@ -470,7 +509,8 @@ cluster_version = "1.35"
 terraform apply
 ```
 
-### **Backup Strategy**:
+### **Backup Strategy**
+
 - **EBS Snapshots**: Daily snapshots của PVCs
 - **Git Repository**: GitOps - all configs in Git
 - **Secrets**: AWS Secrets Manager backup
@@ -479,11 +519,11 @@ terraform apply
 
 ## 📚 REFERENCES
 
-- **Kubernetes Docs**: https://kubernetes.io/docs/
-- **EKS Best Practices**: https://aws.github.io/aws-eks-best-practices/
-- **ArgoCD**: https://argo-cd.readthedocs.io/
-- **Prometheus**: https://prometheus.io/docs/
-- **Grafana**: https://grafana.com/docs/
+- **Kubernetes Docs**: <https://kubernetes.io/docs/>
+- **EKS Best Practices**: <https://aws.github.io/aws-eks-best-practices/>
+- **ArgoCD**: <https://argo-cd.readthedocs.io/>
+- **Prometheus**: <https://prometheus.io/docs/>
+- **Grafana**: <https://grafana.com/docs/>
 
 ---
 

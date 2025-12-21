@@ -65,4 +65,3 @@ output "ecr_docker_login_command" {
   description = "Command to authenticate Docker with ECR"
   value       = module.ecr.docker_login_command
 }
-

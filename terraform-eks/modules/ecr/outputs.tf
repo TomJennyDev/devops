@@ -52,5 +52,3 @@ output "docker_login_command" {
 # Data Sources
 # ==================================================
 data "aws_region" "current" {}
-
-
