@@ -1,0 +1,61 @@
+# ========================================
+# YAMLLINT CONFIGURATION
+# ========================================
+# Documentation: https://yamllint.readthedocs.io/
+
+extends: relaxed
+
+rules:
+  # Line length - Increased for Kubernetes manifests with long URLs/base64
+  line-length:
+    max: 200
+    level: warning
+
+  # Indentation - Relaxed for Kubernetes manifests
+  indentation:
+    spaces: consistent
+    indent-sequences: whatever
+
+  # Trailing spaces
+  trailing-spaces: enable
+
+  # Empty lines
+  empty-lines:
+    max: 2
+
+  # Document start (---) - Allow for Kubernetes multi-doc files
+  document-start: disable
+
+  # Comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Truthy values (yes/no vs true/false)
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+
+  # Key duplicates
+  key-duplicates: enable
+
+  # Brackets
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  # Colons
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+ignore: |
+  .git/
+  node_modules/
+  .venv/
+  venv/
+  __pycache__/
+  *.pyc
+  .terraform/
+  .terragrunt-cache/
+  .secrets.baseline
+  package-lock.json

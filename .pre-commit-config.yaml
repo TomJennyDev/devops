@@ -21,12 +21,21 @@ repos:
   #     - id: terraform_tfsec
 
   # ========================================
-  # KUBERNETES MANIFESTS
+  # KUBERNETES MANIFESTS & YAML VALIDATION
   # ========================================
+  # yamllint - Advanced YAML linter
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        name: Lint YAML files
+        args: ['-d', '{extends: relaxed, rules: {line-length: {max: 200}}}']
+        files: \.(yaml|yml)$
+
+  # Check for tabs in YAML
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
-      # Validate YAML syntax
       - id: forbid-tabs
         name: No tabs in YAML
         files: \.(yaml|yml)$
