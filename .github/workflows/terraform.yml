@@ -3,31 +3,48 @@
 # ========================================
 # Automated Terraform validation, planning, and deployment
 # Triggered on: Push to main, Pull Requests
+#
+# ⚠️ WORKFLOW DISABLED - SETUP REQUIRED ⚠️
+# This workflow requires:
+# 1. GitHub Environments (dev, staging, prod) - See .github/workflows/SETUP-GUIDE.md
+# 2. AWS IAM OIDC Roles + Secrets (AWS_ROLE_ARN_DEV, AWS_ROLE_ARN_STAGING, AWS_ROLE_ARN_PROD)
+# 3. Uncomment the 'on:' section below after setup is complete
 
 name: 'Terraform CI/CD'
 
+# DISABLED - Uncomment after completing setup in SETUP-GUIDE.md
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'terraform-eks/**'
-      - '.github/workflows/terraform.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'terraform-eks/**'
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to deploy'
+      force_run:
+        description: 'Force run (setup must be complete first)'
         required: true
-        type: choice
-        options:
-          - dev
-          - staging
-          - prod
+        type: boolean
+        default: false
+
+# ORIGINAL TRIGGERS - Uncomment after setup:
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'terraform-eks/**'
+#       - '.github/workflows/terraform.yml'
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'terraform-eks/**'
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         description: 'Environment to deploy'
+#         required: true
+#         type: choice
+#         options:
+#           - dev
+#           - staging
+#           - prod
 
 env:
   TF_VERSION: '1.9.0'

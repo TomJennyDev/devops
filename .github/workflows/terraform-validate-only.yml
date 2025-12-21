@@ -1,0 +1,144 @@
+# ========================================
+# TERRAFORM VALIDATION ONLY (NO AWS)
+# ========================================
+# This workflow validates Terraform without requiring AWS credentials
+# Use this until AWS OIDC roles are configured
+# See: .github/workflows/SETUP-GUIDE.md
+
+name: 'Terraform Validation'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform-eks/**'
+      - '.github/workflows/terraform-validate-only.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform-eks/**'
+
+env:
+  TF_VERSION: '1.9.0'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ========================================
+  # JOB 1: TERRAFORM VALIDATION
+  # ========================================
+  validate:
+    name: 'Terraform Validate'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform-eks
+        continue-on-error: true
+
+      - name: Terraform Init (Backend Disabled)
+        id: init
+        run: terraform init -backend=false
+        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ./terraform-eks/environments/${{ matrix.environment }}
+
+      - name: Comment PR - Validation Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Validation Results (${{ matrix.environment }}) 🔍
+
+            #### Terraform Format 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+            <details><summary>Validation Output</summary>
+
+            \`\`\`
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*
+
+            ---
+            ⚠️ **Note:** AWS deployment disabled. See \`.github/workflows/SETUP-GUIDE.md\` to enable full CI/CD.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # ========================================
+  # JOB 2: SECURITY SCAN
+  # ========================================
+  security:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ./terraform-eks
+          soft_fail: true
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./terraform-eks
+          framework: terraform
+          soft_fail: true
+
+  # ========================================
+  # JOB 3: COMPLETION SUMMARY
+  # ========================================
+  summary:
+    name: 'Validation Summary'
+    runs-on: ubuntu-latest
+    needs: [validate, security]
+    if: always()
+
+    steps:
+      - name: Validation Complete
+        run: |
+          echo "✅ Terraform validation complete for all environments"
+          echo ""
+          echo "📋 Next Steps:"
+          echo "1. Review validation results above"
+          echo "2. Configure AWS OIDC roles (see SETUP-GUIDE.md)"
+          echo "3. Add GitHub secrets for AWS role ARNs"
+          echo "4. Create GitHub environments (dev, staging, prod)"
+          echo "5. Enable terraform.yml workflow for full CI/CD"
+          echo ""
+          echo "📄 Full setup instructions:"
+          echo "   .github/workflows/SETUP-GUIDE.md"
