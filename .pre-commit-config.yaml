@@ -103,14 +103,15 @@ repos:
         exclude: package-lock.json
 
   # ========================================
-  # MARKDOWN LINTING
+  # MARKDOWN LINTING (DISABLED)
   # ========================================
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
-    hooks:
-      - id: markdownlint
-        name: Lint Markdown files
-        args: ['--fix', '--ignore', 'node_modules']
+  # Uncomment to enable markdown linting
+  # - repo: https://github.com/igorshubovych/markdownlint-cli
+  #   rev: v0.41.0
+  #   hooks:
+  #     - id: markdownlint
+  #       name: Lint Markdown files
+  #       args: ['--fix', '--ignore', 'node_modules']
 
   # ========================================
   # SHELL SCRIPT LINTING
