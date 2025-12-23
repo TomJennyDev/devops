@@ -52,6 +52,31 @@ module "eks" {
   create_wildcard_dns_record          = var.create_wildcard_dns_record
   wildcard_alb_dns_name               = var.wildcard_alb_dns_name
   wildcard_alb_zone_id                = var.wildcard_alb_zone_id
+
+  # WAF variables
+  environment                         = var.environment
+  enable_waf                          = var.enable_waf
+  waf_scope                           = var.waf_scope
+  waf_core_rule_excluded              = var.waf_core_rule_excluded
+  waf_enable_sqli_rule                = var.waf_enable_sqli_rule
+  waf_enable_linux_rule               = var.waf_enable_linux_rule
+  waf_enable_rate_limit               = var.waf_enable_rate_limit
+  waf_rate_limit_value                = var.waf_rate_limit_value
+  waf_enable_geo_blocking             = var.waf_enable_geo_blocking
+  waf_blocked_countries               = var.waf_blocked_countries
+  waf_enable_ip_blacklist             = var.waf_enable_ip_blacklist
+  waf_blacklist_ips                   = var.waf_blacklist_ips
+  waf_enable_ip_whitelist             = var.waf_enable_ip_whitelist
+  waf_whitelist_ips                   = var.waf_whitelist_ips
+  waf_enable_regex                    = var.waf_enable_regex
+  waf_regex_patterns                  = var.waf_regex_patterns
+  waf_enable_logging                  = var.waf_enable_logging
+  waf_log_retention_days              = var.waf_log_retention_days
+  waf_redacted_fields                 = var.waf_redacted_fields
+  waf_enable_alarms                   = var.waf_enable_alarms
+  waf_blocked_threshold               = var.waf_blocked_threshold
+  waf_rate_limited_threshold          = var.waf_rate_limited_threshold
+  waf_alarm_actions                   = var.waf_alarm_actions
 }
 
 # ========================================

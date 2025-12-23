@@ -65,3 +65,22 @@ output "ecr_docker_login_command" {
   description = "Command to authenticate Docker with ECR"
   value       = module.ecr.docker_login_command
 }
+
+# ========================================
+# WAF OUTPUTS
+# ========================================
+
+output "waf_web_acl_id" {
+  description = "WAF Web ACL ID"
+  value       = module.eks.waf_web_acl_id
+}
+
+output "waf_web_acl_arn" {
+  description = "WAF Web ACL ARN"
+  value       = module.eks.waf_web_acl_arn
+}
+
+output "waf_web_acl_name" {
+  description = "WAF Web ACL name"
+  value       = module.eks.waf_web_acl_name
+}
