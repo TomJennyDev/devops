@@ -19,8 +19,8 @@ metadata:
     alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
 
-    # WAF Protection
-    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-southeast-1:372836560690:regional/webacl/my-eks-dev-dev-waf/4fcf2f17-bbcf-435b-b44a-96d9d348b564
+    # WAF Protection (DISABLED for dev - not deployed in Terraform)
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-southeast-1:372836560690:regional/webacl/my-eks-dev-dev-waf/4fcf2f17-bbcf-435b-b44a-96d9d348b564
 
     # Health check
     alb.ingress.kubernetes.io/healthcheck-path: /

@@ -2,18 +2,38 @@
 
 Utility scripts for EKS cluster management and ArgoCD deployment with enterprise GitOps structure.
 
+## 🎯 ONE-COMMAND BOOTSTRAP (RECOMMENDED)
+
+**Deploy everything with a single script using GitOps pattern:**
+
+```bash
+./scripts/bootstrap.sh
+```
+
+This master bootstrap script will:
+1. ✅ Deploy ArgoCD
+2. ✅ Create ArgoCD Projects (applications, infrastructure)
+3. ✅ Deploy App-of-Apps (which auto-deploys ALB Controller, Prometheus, Flowise, etc.)
+4. ✅ Show you ArgoCD credentials and URL
+
+**After this runs, ArgoCD manages everything automatically!** Just push to Git and ArgoCD syncs! 🚀
+
+---
+
 ## 📋 Prerequisites
 
 - AWS CLI configured
 - kubectl installed
 - Helm 3 installed
 - Terraform (for cluster deployment)
-- **AWS Load Balancer Controller** (required before ArgoCD)
+- **EKS Cluster** already deployed (via Terraform)
 - ArgoCD CLI (optional, for advanced operations)
 
-**⚠️  Important:** ALB Controller must be deployed BEFORE ArgoCD if you want to use ALB Ingress.
+**⚠️  Important:** Run `export-cluster-info.sh` first if you haven't already.
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Manual Deployment)
+
+**If you need manual control instead of bootstrap.sh, follow this workflow:**
 
 ### Complete Deployment Workflow
 
