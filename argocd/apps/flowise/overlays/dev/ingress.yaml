@@ -20,7 +20,7 @@ metadata:
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:372836560690:certificate/202c49bd-24b1-4513-a6dd-0379d106fe9a
 
     # WAF Protection
-    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-southeast-1:372836560690:regional/webacl/my-eks-dev-dev-waf/cf800277-3483-4273-a02e-a4341017e37c
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-southeast-1:372836560690:regional/webacl/my-eks-dev-dev-waf/c41bdc2f-8e6e-4098-ae85-3b90b0aeda2c
 
     # Health check
     alb.ingress.kubernetes.io/healthcheck-path: /
