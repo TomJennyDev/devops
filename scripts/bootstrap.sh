@@ -35,14 +35,14 @@ echo -e "${MAGENTA}"
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║     ██████╗  ██████╗  ██████╗ ████████╗███████╗████████╗      ║
-║     ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝██╔════╝╚══██╔══╝      ║
-║     ██████╔╝██║   ██║██║   ██║   ██║   ███████╗   ██║         ║
-║     ██╔══██╗██║   ██║██║   ██║   ██║   ╚════██║   ██║         ║
-║     ██████╔╝╚██████╔╝╚██████╔╝   ██║   ███████║   ██║         ║
-║     ╚═════╝  ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝   ╚═╝         ║
+║     ██████╗  ██████╗  ██████╗ ████████╗███████╗████████╗       ║
+║     ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝██╔════╝╚══██╔══╝       ║
+║     ██████╔╝██║   ██║██║   ██║   ██║   ███████╗   ██║          ║
+║     ██╔══██╗██║   ██║██║   ██║   ██║   ╚════██║   ██║          ║
+║     ██████╔╝╚██████╔╝╚██████╔╝   ██║   ███████║   ██║          ║
+║     ╚═════╝  ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝   ╚═╝          ║
 ║                                                                ║
-║              GitOps Bootstrap - One Command Deploy            ║
+║              GitOps Bootstrap - One Command Deploy             ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 EOF
@@ -147,27 +147,31 @@ echo -e "${GREEN}✅ ArgoCD Projects created${NC}"
 echo ""
 
 # ========================================
-# STEP 3: DEPLOY APP-OF-APPS (BOOTSTRAP)
+# STEP 3: DEPLOY BOOTSTRAP APPLICATIONS (App-of-Apps Pattern)
 # ========================================
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${BLUE}🌟 Step 3: Deploying App-of-Apps (GitOps Bootstrap)${NC}"
+echo -e "${BLUE}🌟 Step 3: Deploying Bootstrap Applications${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 
-echo -e "${CYAN}📌 This is where the magic happens!${NC}"
-echo -e "${CYAN}   ArgoCD will now automatically deploy:${NC}"
-echo -e "${CYAN}   - Infrastructure (ALB Controller, Prometheus)${NC}"
-echo -e "${CYAN}   - Applications (Flowise)${NC}"
+echo -e "${CYAN}📌 Deploying App-of-Apps (2 kubectl applies only):${NC}"
+echo -e "${CYAN}   1. infrastructure-apps-dev (ALB, Prometheus, etc)${NC}"
+echo -e "${CYAN}   2. flowise-dev (Application)${NC}"
+echo -e "${CYAN}   After this, ArgoCD manages everything from Git!${NC}"
 echo ""
 
 # Deploy infrastructure app-of-apps
-echo -e "${YELLOW}Deploying infrastructure app-of-apps...${NC}"
+echo -e "${YELLOW}[1/2] Deploying infrastructure app-of-apps...${NC}"
 kubectl apply -f "$PROJECT_ROOT/argocd/bootstrap/infrastructure-apps-dev.yaml"
+echo -e "${GREEN}✅ Infrastructure app-of-apps created${NC}"
 
-# Deploy flowise app
-echo -e "${YELLOW}Deploying Flowise application...${NC}"
+# Deploy application app-of-apps
+echo -e "${YELLOW}[2/2] Deploying flowise application...${NC}"
 kubectl apply -f "$PROJECT_ROOT/argocd/bootstrap/flowise-dev.yaml"
+echo -e "${GREEN}✅ Flowise application created${NC}"
 
-echo -e "${GREEN}✅ Bootstrap Applications deployed${NC}"
+echo ""
+echo -e "${GREEN}✅ Bootstrap complete!${NC}"
+echo -e "${CYAN}   From now on: git push → ArgoCD auto-syncs!${NC}"
 echo ""
 
 # ========================================

@@ -60,6 +60,11 @@ prometheus:
     podMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
 
+    # Allow discovering ServiceMonitors/PodMonitors in all namespaces
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+
     # Replicas
     replicas: 1  # Single replica for dev
 

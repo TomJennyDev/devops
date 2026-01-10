@@ -293,6 +293,50 @@ module "waf" {
 }
 
 # ========================================
+# AUTO-UPDATE INGRESS WITH WAF ARN
+# ========================================
+resource "null_resource" "update_waf_ingress" {
+  count = var.enable_waf ? 1 : 0
+
+  triggers = {
+    waf_arn = module.waf.waf_web_acl_arn
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Updating ingress with WAF ARN: ${module.waf.waf_web_acl_arn}"
+      
+      # Determine the correct sed syntax based on OS
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        SED_CMD="sed -i ''"
+      else
+        SED_CMD="sed -i"
+      fi
+      
+      # Path to ingress file (relative to terraform execution directory)
+      INGRESS_FILE="../../argocd/apps/flowise/overlays/${var.environment}/ingress.yaml"
+      
+      if [ -f "$INGRESS_FILE" ]; then
+        # Update or add WAF annotation
+        if grep -q "alb.ingress.kubernetes.io/wafv2-acl-arn:" "$INGRESS_FILE"; then
+          # Update existing annotation
+          $SED_CMD "s|alb.ingress.kubernetes.io/wafv2-acl-arn:.*|alb.ingress.kubernetes.io/wafv2-acl-arn: ${module.waf.waf_web_acl_arn}|" "$INGRESS_FILE"
+          echo "✓ Updated WAF annotation in $INGRESS_FILE"
+        else
+          echo "⚠ WAF annotation not found in ingress. Please add manually."
+        fi
+      else
+        echo "⚠ Ingress file not found: $INGRESS_FILE"
+      fi
+    EOT
+    
+    working_dir = path.module
+  }
+
+  depends_on = [module.waf]
+}
+
+# ========================================
 # CLOUDFRONT MODULE
 # ========================================
 module "cloudfront" {

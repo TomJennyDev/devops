@@ -1,52 +1,58 @@
-# EKS Terraform Configuration - Multi-Environment
+# EKS Terraform Configuration - Development Environment
 
-Terraform configuration để deploy Amazon EKS cluster với 3 môi trường: **Dev**, **Staging**, và **Production** (November 2025).
+Terraform configuration để deploy Amazon EKS cluster cho môi trường **Development** với GitOps pattern sử dụng ArgoCD (January 2026).
 
 ## 📋 Yêu cầu
 
-- **Terraform**: >= 1.0
+- **Terraform**: >= 1.9.0
 - **AWS CLI**: >= 2.x
 - **kubectl**: >= 1.31
-- **AWS Account** với quyền tạo EKS, VPC, IAM
-- **S3 Bucket** cho Terraform state (mỗi môi trường 1 bucket)
-- **ArgoCD** (optional): Để deploy applications sau khi tạo cluster
+- **AWS Account** với quyền tạo EKS, VPC, IAM, WAF
+- **S3 Bucket** cho Terraform state: `terraform-state-372836560690-dev`
+- **DynamoDB Table** cho state locking: `terraform-state-lock-dev`
+- **ArgoCD**: Deployed trong cluster để quản lý applications
 
-## 🏗️ Kiến trúc Multi-Layer GitOps
+## 🏗️ Kiến trúc GitOps - Development Environment
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                    EKS Multi-Environment GitOps Architecture              │
+│                    EKS Development GitOps Architecture                    │
 │         Terraform Infrastructure + ArgoCD + Prometheus + Flowise          │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  LAYER 1: Infrastructure (Terraform)                                    │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Terraform Modules:                                                     │
 │  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────────┐   │
-│  │ VPC & Networking│  │  EKS Cluster     │  │  AWS Services      │   │
-│  │ • Public Subnets│  │  • K8s 1.31/1.34 │  │  • IAM (IRSA)      │   │
-│  │ • Private       │  │  • CoreDNS       │  │  • Route53         │   │
-│  │ • IGW, NAT(1-3) │  │  • VPC CNI       │  │  • ACM (SSL/TLS)   │   │
-│  │ • ALB           │  │  • kube-proxy    │  │  • ECR             │   │
-│  │ • 2-3 AZs       │  │  • 2-6 nodes     │  │  • CloudWatch      │   │
-│  └─────────────────┘  └──────────────────┘  │  • S3 + DynamoDB   │   │
-│                                              └────────────────────┘   │
+│  │ VPC & Network   │  │  EKS Cluster     │  │  AWS Services      │   │
+│  │ • Public (2 AZ) │  │  • K8s 1.31      │  │  • IAM (IRSA)      │   │
+│  │ • Private (2 AZ)│  │  • VPC CNI       │  │  • Route53         │   │
+│  │ • 1 NAT Gateway │  │  • CoreDNS       │  │  • ACM (SSL)       │   │
+│  │ • Internet GW   │  │  • kube-proxy    │  │  • WAF (Active)    │   │
+│  │ • 2 AZs         │  │  • 2-4 nodes     │  │  • S3 + DynamoDB   │   │
+│  └─────────────────┘  └──────────────────┘  └────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
                                     ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  LAYER 2: System Applications (ArgoCD Managed)                         │
+│  LAYER 2: System Applications (ArgoCD Bootstrap)                       │
 ├─────────────────────────────────────────────────────────────────────────┤
+│  Bootstrap Applications (App-of-Apps Pattern):                          │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ infrastructure-apps-dev.yaml  → Manages infrastructure services  │  │
+│  │ flowise-dev.yaml              → Manages Flowise application      │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
-│  │ argocd namespace │  │ kube-system      │  │ monitoring          │ │
-│  │ • ArgoCD GitOps  │  │ • AWS LB Ctrl    │  │ • Prometheus        │ │
-│  │ • App of Apps    │  │ • External DNS   │  │ • Grafana           │ │
-│  │ • Auto Sync      │  │ • kube-proxy     │  │ • Alertmanager      │ │
-│  │ • Self Heal      │  │                  │  │ • Node Exporter     │ │
-│  │                  │  │                  │  │ • Kube State        │ │
-│  │ Bootstrap:       │  │                  │  │ • Pushgateway       │ │
-│  │ - infra-apps-dev │  │                  │  │ • Dashboards        │ │
-│  │ - flowise-dev    │  │                  │  │                     │ │
+│  │ kube-system      │  │ monitoring       │  │ argocd              │ │
+│  │ • AWS LB Ctrl    │  │ • Prometheus     │  │ • ArgoCD Server     │ │
+│  │   (2 ALBs)       │  │ • Grafana        │  │ • App-of-Apps       │ │
+│  │ • VPC CNI        │  │ • Alertmanager   │  │ • Auto Sync         │ │
+│  │ • CoreDNS        │  │ • Node Exporter  │  │                     │ │
+│  │                  │  │ • Kube State     │  │ Projects:           │ │
+│  │ ALBs Created:    │  │                  │  │ - applications      │ │
+│  │ 1. flowise-dev   │  │ Ingress:         │  │ - infrastructure    │ │
+│  │ 2. monitoring    │  │ grafana-dev.     │  │                     │ │
+│  │                  │  │ do2506.click     │  │                     │ │
 │  └──────────────────┘  └──────────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
                                     ↓
@@ -54,166 +60,160 @@ Terraform configuration để deploy Amazon EKS cluster với 3 môi trường: 
 │  LAYER 3: Business Applications (ArgoCD Managed)                       │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  ┌──────────────────────────┐  ┌──────────────────────────────────┐  │
-│  │ flowise-dev/staging/prod │  │ your-app-* namespaces            │  │
-│  │ • Flowise AI Chatbot     │  │ • Your Microservices             │  │
-│  │ • PostgreSQL Database    │  │ • Databases (MySQL, MongoDB)     │  │
-│  │ • Ingress (ALB+ACM SSL)  │  │ • Workers & Background Jobs      │  │
-│  │ • PVC (Storage)          │  │ • Message Queues (RabbitMQ)      │  │
-│  │ • HPA (Auto-scaling)     │  │ • Cache (Redis)                  │  │
-│  │ URL: flowise-dev.        │  │ • REST APIs                      │  │
+│  │ flowise-dev namespace    │  │ Future Applications              │  │
+│  │ • Flowise UI (port 80)   │  │ • Your microservices             │  │
+│  │ • Flowise Server (3000)  │  │ • Databases                      │  │
+│  │ • Ingress + WAF          │  │ • Message queues                 │  │
+│  │ • PVC Storage            │  │ • APIs                           │  │
+│  │                          │  │                                  │  │
+│  │ URL: flowise-dev.        │  │ Kustomize: base + overlays/dev   │  │
 │  │      do2506.click        │  │                                  │  │
+│  │                          │  │                                  │  │
+│  │ WAF Protection:          │  │                                  │  │
+│  │ • Rate limiting          │  │                                  │  │
+│  │ • SQL injection block    │  │                                  │  │
+│  │ • XSS prevention         │  │                                  │  │
 │  └──────────────────────────┘  └──────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  CI/CD Pipeline (GitHub Actions)                                        │
+│  Traffic Flow                                                            │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  DevOps → GitHub → GitHub Actions → Docker Build → Push ECR → ArgoCD  │
-│           Repo      (CI Pipeline)     (Image)       (Registry)  Sync   │
-│                                                                         │
-│  Flow: Code Push → Build → Test → Push Image → ArgoCD Auto Deploy     │
+│  User → Route53 → WAF (Block/Allow) → ALB → Ingress → Service → Pods  │
+│         DNS        Security Layer      L7 LB   K8s      ClusterIP       │
 └─────────────────────────────────────────────────────────────────────────┘
 
-                           End Users ← Internet → ALB → Services
+┌─────────────────────────────────────────────────────────────────────────┐
+│  State Management                                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│  S3: terraform-state-372836560690-dev/eks/terraform.tfstate (21.6 KB)  │
+│  DynamoDB: terraform-state-lock-dev (State locking)                    │
+│  Git: argocd/ directory (Application manifests - GitOps)               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Architecture Highlights:**
 
 🔹 **Layer 1 - Infrastructure (Terraform):**
 
-- Multi-AZ deployment (2 AZs for Dev, 3 AZs for Staging/Prod)
-- High Availability with multiple NAT Gateways
-- EKS Cluster with latest Kubernetes (1.31/1.34)
-- Complete AWS integration (IAM, Route53, ACM, ECR, CloudWatch)
-- State management with S3 + DynamoDB locking
+- 2 Availability Zones deployment
+- 1 NAT Gateway (cost-optimized for dev)
+- EKS Cluster v1.31 with managed node groups
+- Complete AWS integration (IAM IRSA, Route53, ACM, WAF)
+- S3 backend với DynamoDB locking cho state management
+- WAF Web ACL protecting all ALBs
 
-🔹 **Layer 2 - System Apps (ArgoCD):**
+🔹 **Layer 2 - System Apps (ArgoCD Bootstrap):**
 
-- **ArgoCD**: GitOps continuous deployment (App of Apps pattern)
-- **AWS Load Balancer Controller**: ALB/NLB for Ingress
-- **External DNS**: Automatic Route53 record management
+- **ArgoCD**: GitOps continuous deployment với App-of-Apps pattern
+- **AWS Load Balancer Controller**: Tạo 2 ALBs (flowise-dev, monitoring)
 - **Prometheus Stack**: Complete monitoring solution
-  - Metrics collection from K8s API, nodes, pods
-  - Grafana dashboards for visualization
-  - Alerting with Alertmanager
-  - Multiple exporters (Node, Kube State, Push Gateway)
+  - Grafana dashboards với ingress
+  - Prometheus metrics collection
+  - Alertmanager notifications
+  - Node & Kube State metrics exporters
 
-🔹 **Layer 3 - Business Apps (ArgoCD):**
+🔹 **Layer 3 - Business Apps (ArgoCD Managed):**
 
-- **Flowise**: AI Chatbot with PostgreSQL, Ingress, PVC, HPA
-- **Your Applications**: Deployed via ArgoCD from GitHub
-- Auto-scaling, persistent storage, SSL certificates
-- Multiple environments (dev, staging, prod)
+- **Flowise**: AI Chatbot application
+  - UI service (port 80) + Server (port 3000)
+  - Kustomize base + dev overlay
+  - WAF protection + SSL certificate
+  - Ingress: flowise-dev.do2506.click
 
-🔹 **CI/CD Pipeline:**
+🔹 **Security Layer:**
 
-- GitHub Actions for automated builds
-- Docker image build and push to ECR
-- ArgoCD auto-sync for deployment
-- GitOps workflow (Git as single source of truth)
+- **AWS WAF v2**: Active protection
+  - Rate limiting (requests per IP)
+  - SQL injection prevention
+  - XSS attack blocking
+  - Associated with both ALBs
 
 **DNS & SSL Architecture:**
 
-- **CoreDNS**: Built-in EKS addon - internal cluster DNS (service discovery)
-- **External DNS**: Optional module - syncs Ingress/Service to Route53 (public DNS)
+- **CoreDNS**: Built-in EKS addon cho internal cluster DNS (service discovery)
+- **Route53**: Manual DNS records cho external access
 - **AWS ACM**: SSL/TLS certificate management (no cert-manager needed)
 
-## 🏗️ Kiến trúc Multi-Environment
+## 🏗️ Cấu trúc Project
 
 ```
 terraform-eks/
 ├── environments/
-│   ├── dev/          # Development (~$140/month)
-│   ├── staging/      # Pre-production (~$185/month)
-│   └── prod/         # Production (~$315/month)
-├── modules/                  # Reusable infrastructure modules
-│   ├── vpc/                 # VPC, subnets, NAT, IGW
-│   ├── iam/                 # IAM roles and policies
-│   ├── security-groups/     # Security groups
-│   ├── eks/                 # EKS cluster and addons (CoreDNS included)
-│   ├── node-groups/         # Managed node groups
-│   ├── alb-controller/      # ALB Controller IAM (IRSA)
-│   └── external-dns/        # External DNS IAM (optional)
-├── argocd/                   # ArgoCD application manifests
-│   ├── app-of-apps.yaml     # App-of-Apps pattern
-│   ├── system-apps/         # System-level apps
-│   │   ├── aws-load-balancer-controller.yaml
-│   │   ├── metrics-server.yaml
-│   │   └── external-dns.yaml
-│   └── examples/            # Configuration examples
-│       ├── ingress-with-acm.md
-│       └── external-dns-route53-setup.md
-├── scripts/
-│   ├── validate-all.sh      # Validate all environments
-│   └── test-environment.sh  # Test specific environment
-└── docs/
-    ├── ENVIRONMENTS-README.md       # Environment details
-    ├── NODE-GROUPS-README.md        # Node configuration
-    ├── ALB-CONTROLLER-README.md     # Load balancer setup
-    ├── DNS-ARCHITECTURE.md          # DNS architecture (CoreDNS vs External DNS)
-    └── architecture-diagram.drawio  # Architecture diagram
+│   └── dev/                 # Development environment (~$140/month)
+│       ├── backend.tf       # S3 backend configuration
+│       ├── main.tf          # Main infrastructure  
+│       ├── variables.tf     # Variable definitions
+│       ├── terraform.tfvars # Dev-specific values
+│       └── outputs.tf       # Output values
+├── modules/                 # Reusable infrastructure modules
+│   ├── vpc/                # VPC, subnets, NAT, IGW (2 AZs)
+│   ├── iam/                # IAM roles and policies
+│   ├── security-groups/    # Security groups
+│   ├── eks/                # EKS cluster and addons
+│   ├── node-groups/        # Managed node groups (2-4 nodes)
+│   ├── alb-controller/     # ALB Controller IAM (IRSA)
+│   └── waf/                # WAF Web ACL configuration
+├── outputs.tf              # Root-level outputs
+└── README.md               # This file
 ```
 
-### VPC Architecture (per environment)
+### VPC Architecture (Dev Environment)
 
 ```
-VPC (10.x.0.0/16)
-├── Public Subnets (2-3 AZs based on env)
-│   ├── 10.x.1.0/24 (ap-southeast-1a)
-│   ├── 10.x.2.0/24 (ap-southeast-1b)
-│   └── 10.x.3.0/24 (ap-southeast-1c) [staging/prod only]
-├── Private Subnets (2-3 AZs based on env)
-│   ├── 10.x.11.0/24 (Nodes)
-│   ├── 10.x.12.0/24 (Nodes)
-│   └── 10.x.13.0/24 (Nodes) [staging/prod only]
+VPC (10.0.0.0/16)
+├── Public Subnets (2 AZs)
+│   ├── 10.0.1.0/24 (ap-southeast-1a) - NAT Gateway here
+│   └── 10.0.2.0/24 (ap-southeast-1b)
+├── Private Subnets (2 AZs)
+│   ├── 10.0.11.0/24 (Worker Nodes)
+│   └── 10.0.12.0/24 (Worker Nodes)
 ├── Internet Gateway
-├── NAT Gateway (1-3 based on env)
-└── EKS Cluster (Kubernetes 1.31/1.34)
+├── 1x NAT Gateway (cost-optimized)
+├── EKS Cluster (Kubernetes 1.31)
+└── WAF Web ACL (protecting 2 ALBs)
 ```
 
 ## 📦 Tính năng
 
-- ✅ **Multi-Environment** - Dev, Staging, Production separated
-- ✅ **EKS 1.31/1.34** - Kubernetes versions (Dev: 1.34, Staging/Prod: 1.31)
+- ✅ **EKS 1.31** - Stable Kubernetes version
 - ✅ **AWS Provider 5.100** - Latest features support
-- ✅ **State Isolation** - Separate S3 backend per environment
-- ✅ **Cost Optimized** - SPOT instances (staging), configurable NAT
-- ✅ **High Availability** - Multi-AZ deployment (2-3 AZs based on env)
+- ✅ **S3 Backend** - Remote state với S3 + DynamoDB locking
+- ✅ **Cost Optimized** - 1 NAT Gateway, t3.large nodes
+- ✅ **High Availability** - 2 AZ deployment, 2-4 nodes
 - ✅ **Amazon Linux 2023** - Latest AMI with long-term support
-- ✅ **EKS Addons** - Dev: VPC CNI v1.20.4, CoreDNS v1.12.4, kube-proxy v1.34.1 | Staging/Prod: VPC CNI v1.18.5, CoreDNS v1.11.3, kube-proxy v1.31.0
+- ✅ **EKS Addons** - VPC CNI v1.18.5, CoreDNS v1.11.3, kube-proxy v1.31.0
 - ✅ **IRSA Support** - IAM Roles for Service Accounts
-- ✅ **ALB Controller** - Ready for Application Load Balancer
-- ✅ **External DNS** - Optional Route53 automation for public DNS
+- ✅ **ALB Controller** - 2 ALBs (flowise-dev, monitoring)
+- ✅ **AWS WAF** - Web Application Firewall protection
 - ✅ **AWS ACM** - SSL/TLS certificate management
-- ✅ **GitOps Ready** - ArgoCD for application deployment
-- ✅ **CloudWatch Logging** - Configurable log retention per environment
-- ✅ **Security Hardened** - Separated security groups, optional SSH
-- ✅ **Auto-scaling** - Node groups with configurable scaling
+- ✅ **GitOps Ready** - ArgoCD với App-of-Apps pattern
+- ✅ **Monitoring Stack** - Prometheus + Grafana deployed
+- ✅ **CloudWatch Logging** - 7 days retention
+- ✅ **Security Hardened** - Separated security groups, WAF protection
 
 ## 🚀 Quick Start
 
-### Option 1: Test Configuration First (Recommended)
+### Prerequisites Check
 
 ```bash
-# Validate all environments
-bash scripts/validate-all.sh
+# Check AWS CLI
+aws --version
+aws sts get-caller-identity
 
-# Test specific environment
-bash scripts/test-environment.sh dev
+# Check Terraform
+terraform version  # Should be >= 1.9.0
+
+# Check kubectl
+kubectl version --client
 ```
-
-### Option 2: Deploy Step by Step
 
 ## 📝 Deployment Guide
 
 ### 🔧 Step 1: Chuẩn bị AWS Backend
 
-Tạo S3 buckets và DynamoDB tables cho **mỗi môi trường**:
-
-#### Development Backend
-
 ```bash
-# Create S3 bucket
+# Create S3 bucket for state
 aws s3api create-bucket \
   --bucket terraform-state-372836560690-dev \
   --region ap-southeast-1 \
@@ -224,305 +224,201 @@ aws s3api put-bucket-versioning \
   --bucket terraform-state-372836560690-dev \
   --versioning-configuration Status=Enabled
 
-# Create DynamoDB table for locking
+# Create DynamoDB table for state locking
 aws dynamodb create-table \
-  --table-name terraform-state-lock-372836560690-dev \
+  --table-name terraform-state-lock-dev \
   --attribute-definitions AttributeName=LockID,AttributeType=S \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
   --region ap-southeast-1
 ```
 
-#### Staging Backend
-
-```bash
-aws s3api create-bucket \
-  --bucket terraform-state-372836560690-staging \
-  --region ap-southeast-1 \
-  --create-bucket-configuration LocationConstraint=ap-southeast-1
-
-aws s3api put-bucket-versioning \
-  --bucket terraform-state-372836560690-staging \
-  --versioning-configuration Status=Enabled
-
-aws dynamodb create-table \
-  --table-name terraform-state-lock-372836560690-staging \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region ap-southeast-1
-```
-
-#### Production Backend
-
-```bash
-aws s3api create-bucket \
-  --bucket terraform-state-372836560690-prod \
-  --region ap-southeast-1 \
-  --create-bucket-configuration LocationConstraint=ap-southeast-1
-
-aws s3api put-bucket-versioning \
-  --bucket terraform-state-372836560690-prod \
-  --versioning-configuration Status=Enabled
-
-aws dynamodb create-table \
-  --table-name terraform-state-lock-372836560690-prod \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region ap-southeast-1
-```
-
-### 🌱 Step 2: Deploy Development Environment
+### 🌱 Step 2: Deploy Infrastructure
 
 ```bash
 cd environments/dev
 
 # Review configuration
 cat terraform.tfvars
+cat backend.tf
 
-# Update backend.tf with your bucket names (if needed)
-# Update terraform.tfvars with your settings
-
-# Initialize
+# Initialize Terraform
 terraform init
 
-# Review what will be created
+# Review what will be created (~50 resources)
 terraform plan
 
-# Deploy (takes ~15-20 minutes)
+# Deploy infrastructure (takes ~15-20 minutes)
 terraform apply
 
 # Configure kubectl
 aws eks update-kubeconfig --name my-eks-dev --region ap-southeast-1
 
-# Verify
+# Verify cluster
 kubectl get nodes
 kubectl get pods -A
 ```
 
-**Development Config:**
+**Được tạo:**
+- ✅ VPC với 2 AZs, 1 NAT Gateway
+- ✅ EKS Cluster v1.31 với 2 worker nodes
+- ✅ IAM roles với IRSA support
+- ✅ Security groups
+- ✅ WAF Web ACL
+- ✅ CloudWatch log groups
 
-- 1 NAT Gateway (cost saving)
-- 2 nodes (t3.large ON_DEMAND) - HA configuration
-- 2 Availability Zones
-- 7 days log retention
-- SSH enabled for debugging
-- EKS 1.34 (latest)
-- Cost: ~$140-160/month
-
-### 🧪 Step 3: Deploy Staging Environment
-
+**Outputs quan trọng:**
 ```bash
-cd environments/staging
-
-# Review and customize
-vim terraform.tfvars
-
-terraform init
-terraform plan
-terraform apply
-
-# Configure kubectl
-aws eks update-kubeconfig --name my-eks-staging --region ap-southeast-1
-kubectl get nodes
+terraform output cluster_endpoint
+terraform output waf_web_acl_arn
+terraform output aws_load_balancer_controller_role_arn
 ```
-
-**Staging Config:**
-
-- 2 NAT Gateways (moderate HA)
-- 2 nodes (t3.large SPOT - 70% cheaper)
-- 3 Availability Zones
-- 14 days log retention
-- EKS 1.31
-- Similar to production for testing
-- Cost: ~$185-200/month
-
-### 🚀 Step 4: Deploy Production Environment
-
-```bash
-cd environments/prod
-
-# Review carefully!
-vim terraform.tfvars
-
-terraform init
-terraform plan
-
-# Review plan thoroughly before applying!
-terraform apply
-
-# Configure kubectl
-aws eks update-kubeconfig --name my-eks-prod --region ap-southeast-1
-kubectl get nodes
-```
-
-**Production Config:**
-
-- 3 NAT Gateways (full HA)
-- 3 nodes (t3.xlarge/t3a.xlarge ON_DEMAND)
-- 3 Availability Zones
-- 30 days log retention (compliance)
-- EKS 1.31
-- SSH disabled (use SSM)
-- Strict CIDR whitelist
-- Cost: ~$315-350/month
 
 ## 📊 Outputs
 
-Sau khi deploy xong, Terraform sẽ output:
+Sau khi deploy xong, check outputs:
 
 ```bash
-cluster_endpoint              # EKS API endpoint
-cluster_name                  # Tên cluster
-cluster_version               # Kubernetes version
-oidc_provider_arn             # OIDC provider ARN (cho IRSA)
-vpc_id                        # VPC ID
-configure_kubectl             # Command để config kubectl
+# All outputs
+terraform output
+
+# Specific outputs
+terraform output cluster_endpoint
+terraform output waf_web_acl_arn
+terraform output aws_load_balancer_controller_role_arn
+
+# Configure kubectl command
+terraform output configure_kubectl
 ```
 
-## 💰 Chi phí So Sánh
+**Key outputs:**
+- `cluster_endpoint` - EKS API server endpoint
+- `cluster_name` - my-eks-dev
+- `waf_web_acl_arn` - ARN của WAF (dùng trong Ingress)
+- `aws_load_balancer_controller_role_arn` - IAM role cho ALB Controller
+- `vpc_id` - VPC ID
+- `oidc_provider_arn` - OIDC provider (cho IRSA)
 
-| Environment | EKS | EC2 Nodes | NAT Gateway | Storage | Logs | **Total** |
-|-------------|-----|-----------|-------------|---------|------|-----------||
-| **Dev** | $73 | $60 (2x t3.large ON_DEMAND) | $32 (1x) | $5 | $2 | **~$140-160**|
-| **Staging** | $73 | $20 (2x t3.large SPOT) | $65 (2x) | $10 | $5 | **~$185-200** |
-| **Production** | $73 | $150 (3x t3.xlarge) | $97 (3x) | $30 | $10 | **~$315-350** |
+## 💰 Chi phí Development Environment
+
+| Component | Configuration | Monthly Cost |
+|-----------|---------------|--------------|
+| **EKS Control Plane** | 1 cluster | $73 |
+| **EC2 Worker Nodes** | 2x t3.large (ON_DEMAND) | $60 |
+| **NAT Gateway** | 1x NAT + Data transfer | $35 |
+| **EBS Storage** | ~50GB gp3 | $5 |
+| **CloudWatch Logs** | 7 days retention | $2 |
+| **WAF** | Web ACL + Rules | $10 |
+| **Data Transfer** | Egress | $5 |
+| **Total** | | **~$190/month** |
 
 💡 **Cost Optimization Tips:**
 
-- Use SPOT instances in staging: Save ~70%
-- Use ARM/Graviton instances: Save ~20%
-- Reduce NAT Gateway count in dev: Save $65/month
-- Use smaller instances in dev: Save $60-120/month
+- ✅ Sử dụng 1 NAT Gateway thay vì 3: Tiết kiệm $70/month
+- ✅ Stop cluster ngoài giờ: Tiết kiệm ~40% ($70-80/month)
+- ⚠️ SPOT instances: Tiết kiệm 70% nodes cost nhưng có thể bị interrupt
+- ⚠️ ARM/Graviton (t4g): Tiết kiệm 20% nhưng cần test compatibility
 
-## 🎯 Environment Comparison
+## 🔧 Configuration
 
-| Feature | Development | Staging | Production |
-|---------|-------------|---------|------------|
-| **Purpose** | Testing, development | Pre-prod validation | Live workloads |
-| **EKS Version** | 1.34 | 1.31 | 1.31 |
-| **VPC CIDR** | 10.0.0.0/16 | 10.1.0.0/16 | 10.2.0.0/16 |
-| **Availability Zones** | 2 AZs | 3 AZs | 3 AZs |
-| **NAT Gateways** | 1 NAT | 2 NAT | 3 NAT |
-| **Node Count** | 2 (min) → 4 (max) | 2 (min) → 5 (max) | 3 (min) → 10 (max) |
-| **Instance Type** | t3.large | t3.large | t3.xlarge/t3a.xlarge |
-| **Capacity** | ON_DEMAND | SPOT (70% off) | ON_DEMAND |
-| **SSH Access** | ✅ Enabled | ✅ Enabled | ❌ Disabled (SSM only) |
-| **API Access** | Public (0.0.0.0/0) | Public (restricted) | Public (strict IPs) |
-| **Log Retention** | 7 days | 14 days | 30 days (compliance) |
-| **Disk Size** | 30GB | 50GB | 100GB |
-| **Monthly Cost** | ~$140-160 | ~$185-200 | ~$315-350 |
+Chỉnh sửa `environments/dev/terraform.tfvars`:
 
-## 🔧 Tùy chỉnh
-
-### High Availability NAT Gateway
+### Node Scaling
 
 ```hcl
-nat_gateway_count = 3  # Tăng chi phí thêm ~$64/month
+node_min_size     = 2   # Minimum nodes
+node_desired_size = 2   # Desired nodes
+node_max_size     = 4   # Maximum nodes (auto-scaling)
 ```
 
-### Scaling Node Group
+### Instance Types
 
 ```hcl
-node_min_size     = 2
-node_desired_size = 3
-node_max_size     = 10
+node_group_instance_types = ["t3.large"]  # Or ["t3.medium", "t3.large"] for mixed
 ```
 
-### Mixed Instance Types
+### High Availability NAT
 
 ```hcl
-node_instance_types = ["t3.medium", "t3.large"]
+nat_gateway_count = 2  # Tăng HA, thêm ~$35/month per NAT
 ```
 
-### Restrict API Access
+### API Access Restriction
 
 ```hcl
-cluster_endpoint_public_access       = true
-cluster_endpoint_public_access_cidrs = ["1.2.3.4/32"]  # Your IP
-```
-
-## 🔧 Post-Deployment Configuration
-
-### Install AWS Load Balancer Controller
-
-```bash
-# Already configured in alb-controller.tf
-# Follow the guide in ALB-CONTROLLER-README.md
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.1/docs/install/iam_policy.json
+cluster_endpoint_public_access_cidrs = ["1.2.3.4/32"]  # Your office IP only
 ```
 
 ## 🔧 Post-Deployment: Install System Applications
 
-After Terraform creates the infrastructure, deploy system applications using ArgoCD:
-
-### Option 1: Using ArgoCD (Recommended - GitOps)
+### Bootstrap với ArgoCD
 
 ```bash
 # 1. Install ArgoCD
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# 2. Get ArgoCD admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+# 2. Wait for ArgoCD ready
+kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 
-# 3. Port forward ArgoCD UI
+# 3. Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d && echo
+
+# 4. Port forward ArgoCD UI
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-# 4. Login to ArgoCD UI at https://localhost:8080
+# 5. Login: https://localhost:8080
 # Username: admin
-# Password: (from step 2)
+# Password: (from step 3)
 
-# 5. Deploy system applications
+# 6. Deploy ArgoCD Projects
+kubectl apply -f ../argocd/projects/applications.yaml
+kubectl apply -f ../argocd/projects/infrastructure.yaml
+
+# 7. Bootstrap system apps (App-of-Apps pattern)
 kubectl apply -f ../argocd/bootstrap/infrastructure-apps-dev.yaml
+kubectl apply -f ../argocd/bootstrap/flowise-dev.yaml
 
-# This will automatically install:
-# ✓ AWS Load Balancer Controller (for ALB/NLB ingress)
-# ✓ Prometheus + Grafana (monitoring)
-# ✓ External DNS (optional - for Route53 automation)
+# ArgoCD sẽ tự động deploy:
+# ✓ AWS Load Balancer Controller → Tạo 2 ALBs
+# ✓ Prometheus + Grafana → Monitoring stack
+# ✓ Flowise Application → AI Chatbot
 ```
 
-**📖 Detailed guides:**
-
-- [argocd/README.md](../argocd/README.md) - Complete ArgoCD setup
-- [argocd/docs/](../argocd/docs/) - ArgoCD architecture and getting started
-- [docs/DNS-ARCHITECTURE.md](docs/DNS-ARCHITECTURE.md) - DNS architecture explained
-
-### Option 2: Manual Helm Installation
+**Kiểm tra deployment:**
 
 ```bash
-# AWS Load Balancer Controller
-helm repo add eks https://aws.github.io/eks-charts
-helm repo update
+# Check ArgoCD applications
+kubectl get applications -n argocd
 
-# Get IAM role ARN from Terraform output
-export ROLE_ARN=$(terraform output -raw aws_load_balancer_controller_role_arn)
-export CLUSTER_NAME=$(terraform output -raw cluster_name)
+# Check ALBs được tạo
+kubectl get ingress -A
 
-helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-  -n kube-system \
-  --set clusterName=${CLUSTER_NAME} \
-  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=${ROLE_ARN}
-
-# Or use ArgoCD to manage it (recommended)
-kubectl apply -f ../argocd/infrastructure/aws-load-balancer-controller/
+# Check pods
+kubectl get pods -n kube-system      # ALB Controller
+kubectl get pods -n monitoring       # Prometheus, Grafana
+kubectl get pods -n flowise-dev      # Flowise app
 ```
 
-📖 Detailed guide: [argocd/README.md](../argocd/README.md)
-
-### Deploy Sample Application
+**Update DNS records:**
 
 ```bash
-# Create deployment
-kubectl create deployment nginx --image=nginx --replicas=3
+# Get ALB hostnames
+kubectl get ingress -A -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.loadBalancer.ingress[0].hostname}{"\n"}{end}'
 
-# Expose with LoadBalancer
-kubectl expose deployment nginx --type=LoadBalancer --port=80
-
-# Get LoadBalancer URL
-kubectl get svc nginx
+# Update DNS với scripts
+cd ../scripts
+./update-flowise-dns.sh dev
+./update-monitoring-dns.sh
 ```
+
+**Deployed URLs:**
+- 🎯 Flowise: https://flowise-dev.do2506.click
+- 📊 Grafana: https://grafana-dev.do2506.click
+- 🔍 Prometheus: https://prometheus-dev.do2506.click
+
+📖 **Chi tiết:** [../argocd/README.md](../argocd/README.md)
 
 ## 🏗️ Architecture Layers
 
@@ -581,44 +477,58 @@ This project follows the **GitOps separation of concerns** pattern:
 
 ## 🧹 Cleanup
 
-### Clean Up Kubernetes Resources First
+### Step 1: Clean Kubernetes Resources
 
 ```bash
-# Delete all LoadBalancers (prevent orphaned ELBs)
-kubectl delete svc --all --all-namespaces
+# Delete ArgoCD applications (will cascade delete all apps)
+kubectl delete application -n argocd --all
 
-# Delete all PersistentVolumeClaims (prevent orphaned EBS)
-kubectl delete pvc --all --all-namespaces
+# Wait for resources to be cleaned up
+kubectl wait --for=delete application/infrastructure-apps-dev -n argocd --timeout=300s
+kubectl wait --for=delete application/flowise-dev -n argocd --timeout=300s
+
+# Verify ALBs are deleted
+kubectl get ingress -A
+aws elbv2 describe-load-balancers --query 'LoadBalancers[?starts_with(LoadBalancerName, `k8s-`)].LoadBalancerName'
 ```
 
-### Destroy Terraform Resources
+### Step 2: Destroy Terraform
 
 ```bash
-# Development
 cd environments/dev
+
+# Review what will be destroyed
+terraform plan -destroy
+
+# Destroy infrastructure
 terraform destroy
 
-# Staging
-cd environments/staging
-terraform destroy
-
-# Production
-cd environments/prod
-terraform destroy  # ⚠️ Be very careful!
+# Confirm: yes
 ```
 
-⏱️ Destruction takes ~10-15 minutes per environment
+⏱️ Destruction takes ~10-15 minutes
+
+### Step 3: Clean Backend (Optional)
+
+```bash
+# Delete S3 state bucket
+aws s3 rm s3://terraform-state-372836560690-dev --recursive
+aws s3api delete-bucket --bucket terraform-state-372836560690-dev
+
+# Delete DynamoDB lock table
+aws dynamodb delete-table --table-name terraform-state-lock-dev
+```
 
 ## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
-| [README.md](README.md) | This file - Getting started guide |
-| [modules/vpc/README.md](modules/vpc/README.md) | VPC module documentation |
-| [modules/ecr/README.md](modules/ecr/README.md) | ECR module documentation |
-| [modules/resource-limits/README.md](modules/resource-limits/README.md) | Resource limits configuration |
-| [argocd/README.md](../argocd/README.md) | ArgoCD and GitOps setup |
-| [argocd/docs/](../argocd/docs/) | Complete ArgoCD documentation |
+| [README.md](README.md) | This file - Quick start guide |
+| [../argocd/README.md](../argocd/README.md) | ArgoCD setup and GitOps patterns |
+| [../argocd/docs/](../argocd/docs/) | ArgoCD architecture documentation |
+| [modules/vpc/README.md](modules/vpc/README.md) | VPC module details |
+| [modules/waf/README.md](modules/waf/README.md) | WAF configuration |
+| [STRUCTURE-EXPLAINED.md](STRUCTURE-EXPLAINED.md) | Terraform structure explained |
 
 ## 🔧 Tùy chỉnh (Per Environment)
 
@@ -652,49 +562,74 @@ cluster_endpoint_public_access_cidrs = ["1.2.3.4/32"]  # Your office IP
 
 ## 🐛 Troubleshooting
 
-### Error: "error creating EKS Cluster"
+### Terraform State Lock Error
 
 ```bash
-# Check IAM permissions
-aws sts get-caller-identity
+# Error: State is locked
+# Solution: Force unlock
+terraform force-unlock <LOCK_ID>
 
-# Check service quotas
-aws service-quotas get-service-quota \
-  --service-code eks \
-  --quota-code L-1194D53C
+# Check lock in DynamoDB
+aws dynamodb get-item \
+  --table-name terraform-state-lock-dev \
+  --key '{"LockID":{"S":"terraform-state-372836560690-dev/eks/terraform.tfstate-md5"}}'
 ```
 
-### Nodes not joining cluster
+### WAF ARN Error in Ingress
 
 ```bash
-# Check node IAM role
+# Error: WAF doesn't exist
+# Get correct WAF ARN from Terraform
+terraform output -raw waf_web_acl_arn
+
+# Update ingress annotation
+kubectl edit ingress flowise-ingress -n flowise-dev
+# Update: alb.ingress.kubernetes.io/wafv2-acl-arn
+```
+
+### ALB Not Created
+
+```bash
+# Check ALB Controller logs
+kubectl logs -n kube-system deployment/aws-load-balancer-controller
+
+# Check Ingress events
+kubectl describe ingress <ingress-name> -n <namespace>
+
+# Verify IAM role
+kubectl get sa aws-load-balancer-controller -n kube-system -o yaml
+```
+
+### Nodes Not Joining Cluster
+
+```bash
+# Check node status
 kubectl get nodes
-aws eks describe-cluster --name my-eks-dev
+
+# Check node group
+aws eks describe-nodegroup \
+  --cluster-name my-eks-dev \
+  --nodegroup-name general
 
 # Check security groups
 aws ec2 describe-security-groups \
   --filters "Name=tag:Name,Values=*eks*"
 ```
 
-### Cannot pull images from ECR
+### DNS Not Resolving
 
 ```bash
-# Check VPC CNI addon
-kubectl get pods -n kube-system | grep aws-node
+# Check Route53 records
+aws route53 list-resource-record-sets \
+  --hosted-zone-id Z08819302E9BMC6AAR2OJ \
+  --query "ResourceRecordSets[?Name=='flowise-dev.do2506.click.']"
 
-# Check NAT Gateway
-aws ec2 describe-nat-gateways \
-  --filter "Name=state,Values=available"
-```
+# Test DNS
+nslookup flowise-dev.do2506.click
+dig flowise-dev.do2506.click
 
-### Terraform State Issues
-
-```bash
-# Refresh state
-terraform refresh
-
-# Import existing resource
-terraform import <resource_type>.<name> <resource_id>
+# Get ALB hostname
+kubectl get ingress -n flowise-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 
 ## 🔗 Useful Commands
@@ -702,26 +637,69 @@ terraform import <resource_type>.<name> <resource_id>
 ### Cluster Management
 
 ```bash
-# Switch between environments
+# Configure kubectl
 aws eks update-kubeconfig --name my-eks-dev --region ap-southeast-1
-aws eks update-kubeconfig --name my-eks-staging --region ap-southeast-1
-aws eks update-kubeconfig --name my-eks-prod --region ap-southeast-1
 
-# List contexts
-kubectl config get-contexts
+# Check cluster info
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods -A
 
-# Switch context
-kubectl config use-context <context-name>
+# Get cluster version
+kubectl version
 ```
 
-### Validation & Testing
+### ArgoCD Management
 
 ```bash
-# Validate all environments
-bash scripts/validate-all.sh
+# List applications
+kubectl get applications -n argocd
 
-# Test specific environment
-bash scripts/test-environment.sh dev
+# Sync application
+kubectl patch application <app-name> -n argocd \
+  --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# Check app status
+kubectl get application flowise-dev -n argocd -o yaml
+```
+
+### ALB & Ingress
+
+```bash
+# List ingresses
+kubectl get ingress -A
+
+# Get ALB hostnames
+kubectl get ingress -A -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.loadBalancer.ingress[0].hostname}{"\n"}{end}'
+
+# Describe ingress
+kubectl describe ingress <name> -n <namespace>
+
+# List ALBs in AWS
+aws elbv2 describe-load-balancers \
+  --query 'LoadBalancers[?starts_with(LoadBalancerName, `k8s-`)].{Name:LoadBalancerName,DNS:DNSName}'
+```
+
+### WAF Management
+
+```bash
+# Get WAF ARN
+terraform output -raw waf_web_acl_arn
+
+# Check WAF associations
+aws wafv2 list-resources-for-web-acl \
+  --web-acl-arn $(terraform output -raw waf_web_acl_arn) \
+  --resource-type APPLICATION_LOAD_BALANCER \
+  --region ap-southeast-1
+
+# WAF metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/WAFV2 \
+  --metric-name BlockedRequests \
+  --start-time 2026-01-08T00:00:00Z \
+  --end-time 2026-01-08T23:59:59Z \
+  --period 3600 \
+  --statistics Sum
 ```
 
 ## 📖 References
@@ -734,7 +712,8 @@ bash scripts/test-environment.sh dev
 
 ## 📝 Version History
 
-- **v2.0** (Nov 2025) - Multi-environment setup, EKS 1.31, AWS Provider 5.75, AL2023
+- **v2.1** (Jan 2026) - Development environment với WAF, ArgoCD patterns documented
+- **v2.0** (Nov 2025) - Multi-environment setup, EKS 1.31
 - **v1.0** - Initial release
 
 ## 👥 Support
@@ -742,8 +721,8 @@ bash scripts/test-environment.sh dev
 For issues or questions:
 
 1. Check [Troubleshooting](#-troubleshooting) section
-2. Review validation: `bash scripts/validate-all.sh`
-3. Check documentation in `docs/` folder
+2. Review [ArgoCD documentation](../argocd/README.md)
+3. Check logs: `kubectl logs -n <namespace> <pod>`
 4. Create an issue in the repository
 
 ## 📄 License

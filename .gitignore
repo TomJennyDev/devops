@@ -60,3 +60,10 @@ tfplan
 
 
 environments/*
+
+node_modules/
+
+
+docs/.vitepress
+docs/argocd
+docs/terraform-learning

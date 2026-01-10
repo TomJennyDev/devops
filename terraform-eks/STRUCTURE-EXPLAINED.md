@@ -15,25 +15,30 @@
 ```
 terraform-eks/
 │
-├── main.tf              # ⭐ ROOT MODULE - Template chung
+├── main.tf              # ⭐ ROOT MODULE - Template infrastructure
 ├── variables.tf         # ⭐ Định nghĩa variables
 ├── outputs.tf           # ⭐ Định nghĩa outputs
 ├── versions.tf          # ⭐ Terraform & provider versions
+├── README.md            # 📖 Documentation
+├── STRUCTURE-EXPLAINED.md # 📖 Structure guide (file này)
 │
 ├── modules/             # 📦 REUSABLE MODULES
-│   ├── vpc/            # Module tạo VPC
-│   ├── eks/            # Module tạo EKS cluster
-│   ├── iam/            # Module tạo IAM roles
-│   └── ...
+│   ├── vpc/            # VPC, subnets, NAT gateway (2 AZs)
+│   ├── eks/            # EKS cluster v1.31
+│   ├── iam/            # IAM roles và policies
+│   ├── security-groups/# Security groups cho cluster/nodes
+│   ├── node-groups/    # Managed node groups (2-4 nodes)
+│   ├── alb-controller/ # ALB Controller IAM (IRSA)
+│   ├── waf/            # WAF Web ACL protection
+│   └── ecr/            # Container registry (optional)
 │
-└── environments/        # 🌍 ENVIRONMENT-SPECIFIC CONFIGS
-    ├── dev/
-    │   ├── main.tf          # 🔗 GỌI root module
-    │   ├── backend.tf       # 💾 S3 backend (dev)
-    │   ├── terraform.tfvars # 🎯 Dev values
-    │   └── variables.tf     # 📋 Variable declarations
-    ├── staging/
-    └── prod/
+└── environments/        # 🌍 ENVIRONMENT CONFIG
+    └── dev/            # Development environment
+        ├── main.tf          # 🔗 Gọi ROOT module
+        ├── backend.tf       # 💾 S3 backend (state management)
+        ├── terraform.tfvars # 🎯 Dev-specific values
+        ├── variables.tf     # 📋 Variable declarations
+        └── outputs.tf       # 📤 Environment outputs
 ```
 
 ---
@@ -51,9 +56,11 @@ terraform-eks/
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. Đọc environments/dev/terraform.tfvars                    │
 │    ┌────────────────────────────────────────────────────┐   │
-│    │ cluster_name = "flowise-dev"                       │   │
+│    │ cluster_name = "my-eks-dev"                        │   │
 │    │ node_group_desired_size = 2                        │   │
-│    │ instance_types = ["t3.medium"]                     │   │
+│    │ node_group_instance_types = ["t3.large"]          │   │
+│    │ vpc_cidr = "10.0.0.0/16"                          │   │
+│    │ enable_waf = true                                  │   │
 │    └────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                           │
@@ -64,7 +71,8 @@ terraform-eks/
 │    │ module "eks" {                                     │   │
 │    │   source = "../../"  # 👈 Trỏ đến ROOT MODULE     │   │
 │    │   cluster_name = var.cluster_name                 │   │
-│    │   node_group_desired_size = var.node_group_...    │   │
+│    │   vpc_cidr = var.vpc_cidr                         │   │
+│    │   enable_waf = var.enable_waf                     │   │
 │    │ }                                                  │   │
 │    └────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
@@ -83,24 +91,33 @@ terraform-eks/
 │    │   cluster_name = var.cluster_name                 │   │
 │    │   vpc_id = module.vpc.vpc_id  # 👈 Dependency     │   │
 │    │ }                                                  │   │
+│    │                                                    │   │
+│    │ module "waf" {                                     │   │
+│    │   source = "./modules/waf"                         │   │
+│    │   cluster_name = var.cluster_name                 │   │
+│    │   enable_waf = var.enable_waf                     │   │
+│    │ }                                                  │   │
 │    └────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. Load từng module con (modules/vpc, modules/eks, ...)    │
+│ 5. Load từng module con (vpc, eks, waf, iam, ...)          │
 │    ┌────────────────────────────────────────────────────┐   │
 │    │ modules/vpc/main.tf:                               │   │
 │    │   resource "aws_vpc" "main" {                      │   │
-│    │     cidr_block = var.vpc_cidr                      │   │
+│    │     cidr_block = "10.0.0.0/16"                     │   │
 │    │   }                                                │   │
 │    │                                                    │   │
 │    │ modules/eks/main.tf:                               │   │
 │    │   resource "aws_eks_cluster" "main" {              │   │
-│    │     name = var.cluster_name                        │   │
-│    │     vpc_config {                                   │   │
-│    │       subnet_ids = var.subnet_ids                  │   │
-│    │     }                                              │   │
+│    │     name = "my-eks-dev"                            │   │
+│    │     vpc_config { ... }                             │   │
+│    │   }                                                │   │
+│    │                                                    │   │
+│    │ modules/waf/main.tf:                               │   │
+│    │   resource "aws_wafv2_web_acl" "main" {            │   │
+│    │     name = "my-eks-dev-dev-waf"                    │   │
 │    │   }                                                │   │
 │    └────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
@@ -108,13 +125,14 @@ terraform-eks/
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 6. Apply resources trên AWS                                │
-│    VPC → Subnets → Security Groups → IAM → EKS → Nodes     │
+│    VPC → Subnets → NAT → SGs → IAM → EKS → Nodes → WAF     │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 7. Lưu state vào S3 (từ backend.tf)                        │
 │    s3://terraform-state-372836560690-dev/eks/terraform.tfstate │
+│    Lock với DynamoDB: terraform-state-lock-dev              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -493,43 +511,52 @@ terraform apply tfplan
    [7/52] Security Groups
    [8/52] EKS Cluster
    [9/52] Node Groups
+   [10/52] WAF Web ACL
+   [11/52] ALB Controller IRSA
    ...
 
 2. Lưu state vào S3:
    s3://terraform-state-372836560690-dev/eks/terraform.tfstate
 
 3. Lock state với DynamoDB:
-   terraform-state-lock-dev
+   terraform-state-lock-dev (prevents concurrent modifications)
 ```
 
 ---
 
-## 🤝 So sánh với các Environments khác
+## 🤝 Future Scalability (Optional)
 
-### Deploy Staging (sau khi dev đã stable)
+### If you need to add Staging/Production later
 
 ```bash
-cd terraform-eks/environments/staging/
+# Copy dev environment structure
+cp -r environments/dev environments/staging
 
-# Chỉ cần thay đổi tfvars, code GIỐNG HỆT dev
+cd environments/staging
+
+# Update backend.tf
+nano backend.tf
+# Change:
+# bucket = "terraform-state-372836560690-staging"
+# key = "staging/eks/terraform.tfstate"
+# dynamodb_table = "terraform-state-lock-staging"
+
+# Update terraform.tfvars
+nano terraform.tfvars
+# Change:
+# cluster_name = "my-eks-staging"
+# vpc_cidr = "10.1.0.0/16"  # Different from dev
+# node_group_instance_types = ["t3.large"]  # Larger instances
+
 terraform init
 terraform plan
 terraform apply
 ```
 
-**File khác nhau:**
-
-```terraform
-# staging/backend.tf (khác dev)
-bucket = "terraform-state-372836560690-staging"  # 👈 Khác dev
-dynamodb_table = "terraform-state-lock-staging"
-
-# staging/terraform.tfvars (khác dev)
-cluster_name = "flowise-staging"  # 👈 Khác dev
-node_group_desired_size = 3       # 👈 3 nodes thay vì 2
-vpc_cidr = "10.1.0.0/16"          # 👈 VPC khác để tránh conflict
-
-# staging/main.tf (GIỐNG dev - copy/paste)
+**Benefits of this approach:**
+- Same infrastructure template (ROOT MODULE) for all environments
+- Separate state files (no conflicts between dev/staging/prod)
+- Easy to test changes in dev before rolling out to staging/prod
 module "eks" {
   source = "../../"  # 👈 Same ROOT MODULE
   # ... same structure
@@ -684,18 +711,18 @@ Companies using this pattern:
 - GitLab
 ```
 
-### 3. **Benefits trong Production**
+### 3. **Benefits in Development**
 
-| Benefit | Giải thích |
+| Benefit | Explanation |
 |---------|------------|
-| **Isolation** | Dev crash không ảnh hưởng prod |
-| **DRY** | 1 code template cho 3 environments |
-| **Testing** | Test changes ở dev trước khi prod |
-| **Rollback** | Rollback riêng từng environment |
-| **Team Collaboration** | Team members work on different envs |
-| **Cost Control** | Dev dùng resources nhỏ, prod dùng lớn |
-| **Security** | Prod có security rules stricter |
-| **Compliance** | Audit trail riêng từng environment |
+| **Modular Design** | Easy to add/remove modules without affecting others |
+| **DRY** | Write infrastructure code once, reusable template |
+| **Testing** | Test infrastructure changes safely in isolated environment |
+| **Rollback** | Easy to rollback state to previous version (S3 versioning) |
+| **Team Collaboration** | State locking prevents conflicts when multiple devs work |
+| **Cost Control** | Use smaller resources in dev, can scale up later |
+| **Documentation** | Clear structure makes onboarding easier |
+| **Compliance** | Audit trail of all infrastructure changes in git |
 
 ---
 
@@ -707,28 +734,37 @@ Companies using this pattern:
 
 ```terraform
 # ❌ BAD: All-in-one file (terraform-eks/main.tf - 2000 dòng)
-resource "aws_vpc" "dev" { ... }
-resource "aws_vpc" "staging" { ... }
-resource "aws_vpc" "prod" { ... }
-
-resource "aws_eks_cluster" "dev" { ... }
-resource "aws_eks_cluster" "staging" { ... }
-resource "aws_eks_cluster" "prod" { ... }
+resource "aws_vpc" "main" { ... }
+resource "aws_eks_cluster" "main" { ... }
+resource "aws_eks_node_group" "main" { ... }
+resource "aws_wafv2_web_acl" "main" { ... }
+# ... 50 more resources
 
 # Problems:
 ❌ 2000+ lines không maintain được
-❌ Deploy dev phải comment out staging/prod code
-❌ 1 typo có thể crash tất cả environments
-❌ Không có state isolation
-❌ Team conflicts (everyone edit same file)
+❌ Khó tìm và sửa specific resource
+❌ 1 typo có thể crash toàn bộ infrastructure
+❌ Không có reusability (phải copy/paste toàn bộ nếu muốn thêm env)
+❌ Team conflicts (everyone edits same large file)
+❌ Khó test từng phần riêng lẻ
 ```
 
 ```
-# ✅ GOOD: Separated structure
-terraform-eks/main.tf (300 dòng - template)
-environments/dev/     (dev-specific)
-environments/staging/ (staging-specific)
-environments/prod/    (prod-specific)
+# ✅ GOOD: Separated modular structure
+terraform-eks/main.tf (300 dòng - orchestration)
+modules/vpc/          (VPC-specific logic)
+modules/eks/          (EKS-specific logic)
+modules/waf/          (WAF-specific logic)
+environments/dev/     (dev-specific overrides)
+
+Benefits:
+✅ Dễ maintain (mỗi file ~100-200 dòng)
+✅ Easy to find and fix issues
+✅ Isolated testing (test từng module độc lập)
+✅ Reusable (modules can be shared across projects)
+✅ Better team collaboration (work on different modules)
+✅ Clear dependencies và resource relationships
+```
 
 Benefits:
 ✅ Clean, maintainable code
@@ -937,75 +973,11 @@ resource "aws_iam_role_policy_attachment" "alb_controller" {
 
 ---
 
-### 5. **External DNS Module** (`modules/external-dns/`)
-
-**Mục đích:** Tự động tạo Route53 DNS records cho services
-
-```terraform
-# modules/external-dns/main.tf
-
-# IAM role cho External DNS
-resource "aws_iam_role" "external_dns" {
-  name = "${var.cluster_name}-external-dns"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Federated = var.oidc_provider_arn
-      }
-      Action = "sts:AssumeRoleWithWebIdentity"
-      Condition = {
-        StringEquals = {
-          "${var.oidc_provider}:sub": "system:serviceaccount:kube-system:external-dns"
-        }
-      }
-    }]
-  })
-}
-
-# Policy cho Route53 access
-resource "aws_iam_policy" "external_dns" {
-  name = "${var.cluster_name}-external-dns"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ChangeResourceRecordSets",
-          "route53:ListHostedZones",
-          "route53:ListResourceRecordSets"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-```
-
-**How it works:**
-
-```yaml
-# Kubernetes Service với annotation
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: flowise.tomjenny.dev
-spec:
-  type: LoadBalancer
-```
-
-→ External DNS tự động tạo Route53 record: `flowise.tomjenny.dev` → ALB DNS
-
----
-
-### 6. **Route53 Module** (`modules/route53/`)
+### 5. **Route53 Module** (`modules/route53/`) [Optional]
 
 **Mục đích:** Quản lý DNS hosted zone và records
+
+**Note:** In current project, DNS is managed manually via script (`update-flowise-dns.sh`), not with Terraform module. But module can be added if you need automated DNS management.
 
 ```terraform
 # modules/route53/main.tf
@@ -1016,46 +988,209 @@ data "aws_route53_zone" "main" {
   private_zone = false
 }
 
-# A record cho ArgoCD
-resource "aws_route53_record" "argocd" {
-  count = var.argocd_dns_enabled ? 1 : 0
+# A record cho Flowise app
+resource "aws_route53_record" "flowise" {
+  count = var.flowise_dns_enabled ? 1 : 0
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "argocd.${var.domain_name}"
+  name    = "flowise-dev.${var.domain_name}"
   type    = "A"
 
   alias {
-    name                   = var.argocd_alb_dns_name  # 👈 Từ ALB
-    zone_id                = var.argocd_alb_zone_id
+    name                   = var.flowise_alb_dns_name  # 👈 Từ ALB
+    zone_id                = var.flowise_alb_zone_id
     evaluate_target_health = true
   }
 }
 
-# Wildcard record cho apps
-resource "aws_route53_record" "wildcard" {
-  count = var.create_wildcard_dns_record ? 1 : 0
+# A record cho Grafana monitoring
+resource "aws_route53_record" "grafana" {
+  count = var.grafana_dns_enabled ? 1 : 0
 
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "*.${var.domain_name}"
+  name    = "grafana-dev.${var.domain_name}"
   type    = "A"
 
   alias {
-    name                   = var.wildcard_alb_dns_name
-    zone_id                = var.wildcard_alb_zone_id
+    name                   = var.monitoring_alb_dns_name
+    zone_id                = var.monitoring_alb_zone_id
     evaluate_target_health = true
   }
 }
 ```
 
-**Use cases:**
+**Current Setup:**
+Instead of Terraform module, project uses bash script for DNS management:
+```bash
+./scripts/update-flowise-dns.sh dev
+./scripts/update-monitoring-dns.sh dev
+```
 
-- `argocd.tomjenny.dev` → ArgoCD UI
-- `flowise.tomjenny.dev` → Flowise app
-- `*.tomjenny.dev` → Wildcard cho tất cả apps
+**Future Option:**
+If you want automated DNS, you can:
+1. Create Route53 module as shown above
+2. Add module to root `main.tf`
+3. Replace manual scripts with Terraform-managed records
 
 ---
 
-### 7. **ECR Module** (`modules/ecr/`)
+### 6. **WAF Module** (`modules/waf/`)
+  name         = var.domain_name
+  private_zone = false
+}
+
+# A record cho ArgoCD
+resource "aws_route53_record" "argocd" {
+  count = var.argocd_dns_enabled ? 1 : 0
+
+**Current Setup:**
+Instead of Terraform module, project uses bash script for DNS management:
+```bash
+./scripts/update-flowise-dns.sh dev
+./scripts/update-monitoring-dns.sh dev
+```
+
+**Future Option:**
+If you want automated DNS, you can:
+1. Create Route53 module as shown above
+2. Add module to root `main.tf`
+3. Replace manual scripts with Terraform-managed records
+
+---
+
+### 6. **WAF Module** (`modules/waf/`)
+
+**Mục đích:** Web Application Firewall protection cho ALBs
+
+**Status:** ✅ Currently deployed protecting both ALBs (flowise-dev, monitoring)
+
+```terraform
+# modules/waf/main.tf
+
+resource "aws_wafv2_web_acl" "main" {
+  name  = "${var.cluster_name}-${var.environment}-waf"
+  scope = "REGIONAL"  # For ALB (CLOUDFRONT for CDN)
+
+  default_action {
+    allow {}  # Allow by default, block specific rules
+  }
+
+  # Rule 1: Rate limiting (1000 requests per 5 min)
+  rule {
+    name     = "rate-limit"
+    priority = 1
+
+    statement {
+      rate_based_statement {
+        limit              = 1000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    action {
+      block {}
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitRule"
+    }
+  }
+
+  # Rule 2: AWS Managed - Core Rule Set
+  rule {
+    name     = "aws-core-rules"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "CoreRuleSet"
+    }
+  }
+
+  # Rule 3: SQL Injection protection
+  rule {
+    name     = "sql-injection"
+    priority = 3
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "SQLiProtection"
+    }
+  }
+
+  visibility_config {
+    sampled_requests_enabled   = true
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.cluster_name}-waf"
+  }
+}
+
+# Associate WAF with ALB
+resource "aws_wafv2_web_acl_association" "alb" {
+  for_each = toset(var.alb_arns)
+
+  resource_arn = each.value
+  web_acl_arn  = aws_wafv2_web_acl.main.arn
+}
+
+# Output WAF Web ACL ARN for ingress annotations
+output "web_acl_arn" {
+  value       = aws_wafv2_web_acl.main.arn
+  description = "WAF Web ACL ARN to use in ALB ingress annotations"
+}
+```
+
+**Protection Features:**
+- ✅ Rate limiting (1000 req/5min per IP)
+- ✅ SQL Injection prevention
+- ✅ XSS (Cross-Site Scripting) blocking
+- ✅ AWS Managed Core Rule Set
+- ✅ CloudWatch metrics for monitoring
+
+**Usage in Kubernetes Ingress:**
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:372836560690:regional/webacl/...
+```
+
+**Current ARN:** Check with:
+```bash
+cd terraform-eks/environments/dev
+terraform output waf_web_acl_arn
+```
+
+---
+
+### 7. **ECR Module** (`modules/ecr/`) [Optional]
 
 **Mục đích:** Tạo Docker container registry
 
@@ -1315,85 +1450,97 @@ resource "aws_wafv2_web_acl_association" "main" {
 
 ## 📊 Module Dependencies Graph
 
+**Current Project Modules:**
+
 ```
 ┌─────────────┐
-│    VPC      │ ← Cơ sở hạ tầng đầu tiên
+│    VPC      │ ← Foundation (10.0.0.0/16, 2 AZs)
 └──────┬──────┘
        │
-       ├──────────────┬──────────────┬──────────────┐
-       ▼              ▼              ▼              ▼
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│   IAM    │   │ Security │   │ Route53  │   │   ECR    │
-│  Roles   │   │  Groups  │   │          │   │(độc lập) │
-└──────┬───┘   └─────┬────┘   └─────┬────┘   └──────────┘
-       │             │              │
-       └──────┬──────┴──────┬───────┘
-              ▼             ▼
+       ├──────────────┬──────────────┐
+       ▼              ▼              ▼
+┌──────────┐   ┌──────────┐   ┌──────────┐
+│   IAM    │   │ Security │   │ Route53  │
+│  Roles   │   │  Groups  │   │(manual)  │
+└──────┬───┘   └─────┬────┘   └──────────┘
+       │             │
+       └──────┬──────┘
+              ▼
        ┌──────────────────────┐
-       │    EKS Cluster       │ ← Core
+       │    EKS Cluster       │ ← Core (v1.31, 2 nodes)
        └──────────┬───────────┘
                   │
-         ┌────────┴────────┬─────────┬──────────┐
-         ▼                 ▼         ▼          ▼
-   ┌──────────┐      ┌─────────┐ ┌─────────┐ ┌──────────┐
-   │   Node   │      │   EKS   │ │   ALB   │ │ External │
-   │  Groups  │      │ Addons  │ │ Contr.  │ │   DNS    │
-   └──────────┘      └─────────┘ └────┬────┘ └─────┬────┘
-                                       │            │
-                                  ┌────┴────┐  ┌────┴─────┐
-                                  │   WAF   │  │ Secrets  │
-                                  │         │  │ Manager  │
-                                  └─────────┘  └──────────┘
+         ┌────────┴────────┬─────────┐
+         ▼                 ▼         ▼
+   ┌──────────┐      ┌─────────┐ ┌─────────┐
+   │   Node   │      │   EKS   │ │   ALB   │
+   │  Groups  │      │ Addons  │ │ Contr.  │
+   │(t3.large)│      │(VPC-CNI)│ │  (IRSA) │
+   └──────────┘      └─────────┘ └────┬────┘
                                        │
                                   ┌────┴────┐
-                                  │CloudFrnt│
+                                  │   WAF   │ ← Deployed (Web ACL)
+                                  │ (v2)    │
                                   └─────────┘
 ```
+
+**Optional Modules (not currently deployed):**
+- ECR (using Docker Hub instead)
+- External DNS (using manual DNS script)
+- CloudFront (using direct ALB access)
+- Secrets Manager (can be added for DB passwords)
 
 ---
 
 ### Q3: Có cách nào đơn giản hơn không?
 
-**A:** Có 2 options:
+**A:** Có 2 alternatives:
 
-**Option 1: Flatten (đơn giản hơn, nhưng mất benefits)**
-
-```
-terraform-eks/
-├── main.tf         # Direct resources (no wrapper)
-├── backend.tf      # Single backend
-└── modules/
-
-Pros:
-✅ Simpler structure
-✅ Fewer files
-
-Cons:
-❌ Khó scale lên nhiều environments
-❌ Mất state isolation
-❌ Không follow best practices
-```
-
-**Option 2: Keep current (recommended)**
+**Option 1: Flat structure (simpler, but less scalable)**
 
 ```
 terraform-eks/
-├── main.tf (ROOT)
-├── modules/
-└── environments/
-    ├── dev/
-    ├── staging/
-    └── prod/
+├── main.tf         # All resources in one file
+├── variables.tf
+└── terraform.tfvars
 
 Pros:
-✅ Industry standard
-✅ Easy to scale
-✅ State isolation
-✅ Best practices
+✅ Fewer files to manage
+✅ Simpler structure for very small projects
 
 Cons:
-❌ More files (nhưng có organization)
+❌ Hard to scale when project grows
+❌ Difficult to maintain large files (1000+ lines)
+❌ No reusability across environments
+❌ No module isolation
+❌ Harder for team collaboration
 ```
+
+**Option 2: Current modular structure (recommended)**
+
+```
+terraform-eks/
+├── main.tf (ROOT MODULE - orchestration)
+├── modules/ (reusable components)
+└── environments/dev/ (environment-specific configs)
+
+Pros:
+✅ Industry standard pattern
+✅ Easy to scale and extend
+✅ Clear separation of concerns
+✅ Reusable modules
+✅ Better for team collaboration
+✅ Follows HashiCorp best practices
+
+Cons:
+❌ More files (but well-organized)
+❌ Slight learning curve (but worth it)
+```
+
+**Recommendation:** Stick with Option 2 (current structure). While it has more files, the benefits far outweigh the complexity. This structure is:
+- Used by major companies (Netflix, Airbnb, Stripe)
+- Recommended by HashiCorp (Terraform creators)
+- Essential for any production-ready infrastructure
 
 ---
 
@@ -1422,18 +1569,29 @@ Cons:
 ```
 Root Module (terraform-eks/main.tf)
     ↓ orchestrates
-Reusable Modules (modules/*)
+Reusable Modules (modules/vpc, modules/eks, modules/waf, ...)
     ↓ used by
-Environment Configs (environments/dev/, staging/, prod/)
+Environment Config (environments/dev/)
     ↓ stores state in
-S3 Backend (per environment)
+S3 Backend (terraform-state-372836560690-dev)
+    ↓ locks with
+DynamoDB (terraform-state-lock-dev)
 ```
 
 **Key Principles:**
 
-1. **DRY**: Write once, use many times
-2. **Isolation**: Separate state per environment
-3. **Modularity**: Break into reusable components
-4. **Best Practices**: Follow industry standards
+1. **DRY (Don't Repeat Yourself)**: Write infrastructure code once in modules, reuse everywhere
+2. **Modularity**: Break infrastructure into logical, reusable components (VPC, EKS, WAF, etc.)
+3. **State Management**: Remote state in S3 with locking ensures team collaboration safety
+4. **Best Practices**: Follow HashiCorp and AWS recommended patterns
+5. **Scalability**: Structure allows easy addition of new environments or modules
 
-**Your structure is CORRECT and follows best practices! ✅**
+**Current Deployment:**
+- ✅ Single development environment (can scale to staging/prod later)
+- ✅ EKS 1.31 with 2 worker nodes (t3.large)
+- ✅ WAF protection enabled (Web ACL with SQL injection + XSS prevention)
+- ✅ 2 ALBs deployed (flowise-dev, monitoring)
+- ✅ ArgoCD GitOps for application deployment
+- ✅ State management with S3 + DynamoDB locking
+
+**Your structure follows industry best practices! ✅**
