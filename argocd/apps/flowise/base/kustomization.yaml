@@ -15,11 +15,5 @@ resources:
   - pvc.yaml
   - servicemonitor.yaml
 
-# Images (will be overridden in overlays)
-images:
-  - name: flowise-server
-    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
-    newTag: latest
-  - name: flowise-ui
-    newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
-    newTag: latest
+# Note: images will be overridden in overlays
+# Do NOT define images here to avoid conflicts
