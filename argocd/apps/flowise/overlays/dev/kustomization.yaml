@@ -21,10 +21,10 @@ resources:
 images:
 - name: flowise-server
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
-  newTag: latest
+  newTag: a0a30e9
 - name: flowise-ui
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
-  newTag: latest
+  newTag: a0a30e9
 
 # ConfigMap generator for dev-specific config
 configMapGenerator:
