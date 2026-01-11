@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-server
+spec:
+  selector:
+    matchLabels:
+      app: flowise
+      component: server
+  template:
+    spec:
+      containers:
+      - name: server
+        env:
+        # Dev-specific environment variables
+        - name: LOG_LEVEL
+          value: "debug"
+        - name: DEBUG
+          value: "true"
+        - name: FLOWISE_PASSWORD
+          value: "dev123"
+        - name: FLOWISE_SECRETKEY_OVERWRITE
+          value: "dev-secret-key-change-in-prod"
+        - name: CORS_ORIGINS
+          value: "*"
+        - name: ENABLE_METRICS
+          value: "true"
+        - name: METRICS_PROVIDER
+          value: "prometheus"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowise-ui
+spec:
+  selector:
+    matchLabels:
+      app: flowise
+      component: ui
+  template:
+    spec:
+      containers:
+      - name: ui
+        env:
+        - name: VITE_PUBLIC_API_URL
+          value: "/api"  # Relative path - browser uses same origin
+        - name: VITE_ENABLE_ANALYTICS
+          value: "true"

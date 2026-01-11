@@ -52,7 +52,7 @@ spec:
             port:
               number: 80
 
-      # API routes (proxy to backend)
+      # API routes (direct to backend server)
       - path: /api
         pathType: Prefix
         backend:

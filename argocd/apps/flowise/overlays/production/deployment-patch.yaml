@@ -4,6 +4,10 @@ metadata:
   name: flowise-server
 spec:
   replicas: 3  # Production: 3 replicas for HA
+  selector:
+    matchLabels:
+      app: flowise
+      component: server
   template:
     spec:
       containers:
@@ -62,6 +66,10 @@ metadata:
   name: flowise-ui
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      app: flowise
+      component: ui
   template:
     spec:
       containers:

@@ -32,7 +32,7 @@ spec:
           service:
             name: flowise-ui
             port:
-              number: 8080
+              number: 80
       - path: /api
         pathType: Prefix
         backend:

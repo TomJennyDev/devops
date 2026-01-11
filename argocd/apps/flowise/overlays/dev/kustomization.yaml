@@ -15,11 +15,6 @@ resources:
 - ingress.yaml
 - ../../base
 
-# Patches specific to dev environment
-patchesStrategicMerge:
-- deployment-restart-patch.yaml
-- deployment-patch.yaml
-
 # Images will be updated by GitHub Actions
 # kustomize edit set image flowise-server=...
 # kustomize edit set image flowise-ui=...
