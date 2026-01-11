@@ -1,0 +1,200 @@
+name: Update Flowise Deployment
+
+on:
+    # Triggered by Flowise repo after building images
+    repository_dispatch:
+        types: [flowise-image-updated]
+    
+    # Manual trigger for testing
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: 'Environment'
+                type: choice
+                required: true
+                default: 'dev'
+                options:
+                    - dev
+                    - staging
+                    - production
+            tag:
+                description: 'Image tag (commit SHA)'
+                type: string
+                required: true
+            server_digest:
+                description: 'Server image digest (optional)'
+                type: string
+                required: false
+            ui_digest:
+                description: 'UI image digest (optional)'
+                type: string
+                required: false
+
+env:
+    AWS_REGION: ap-southeast-1
+    ECR_REGISTRY: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com
+
+jobs:
+    update-kustomization:
+        name: Update Kustomization
+        runs-on: ubuntu-latest
+        steps:
+            - name: Parse trigger payload
+              id: parse
+              run: |
+                  if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+                      # Extract from repository_dispatch payload
+                      ENV="${{ github.event.client_payload.environment }}"
+                      TAG="${{ github.event.client_payload.tag }}"
+                      SHA="${{ github.event.client_payload.sha }}"
+                      SERVER_DIGEST="${{ github.event.client_payload.server_digest }}"
+                      UI_DIGEST="${{ github.event.client_payload.ui_digest }}"
+                      ACTOR="${{ github.event.client_payload.actor }}"
+                      
+                      echo "🎯 Triggered by Flowise repo"
+                      echo "👤 Actor: ${ACTOR}"
+                  else
+                      # Manual workflow_dispatch
+                      ENV="${{ github.event.inputs.environment }}"
+                      TAG="${{ github.event.inputs.tag }}"
+                      SHA="${TAG}"
+                      SERVER_DIGEST="${{ github.event.inputs.server_digest }}"
+                      UI_DIGEST="${{ github.event.inputs.ui_digest }}"
+                      ACTOR="${{ github.actor }}"
+                      
+                      echo "🎯 Manual trigger"
+                  fi
+                  
+                  OVERLAY_PATH="argocd/apps/flowise/overlays/${ENV}"
+                  
+                  echo "env=${ENV}" >> $GITHUB_OUTPUT
+                  echo "tag=${TAG}" >> $GITHUB_OUTPUT
+                  echo "sha=${SHA}" >> $GITHUB_OUTPUT
+                  echo "server_digest=${SERVER_DIGEST}" >> $GITHUB_OUTPUT
+                  echo "ui_digest=${UI_DIGEST}" >> $GITHUB_OUTPUT
+                  echo "overlay_path=${OVERLAY_PATH}" >> $GITHUB_OUTPUT
+                  echo "actor=${ACTOR}" >> $GITHUB_OUTPUT
+                  
+                  echo ""
+                  echo "📝 Deployment details:"
+                  echo "  Environment: ${ENV}"
+                  echo "  Tag: ${TAG}"
+                  echo "  SHA: ${SHA}"
+                  echo "  Overlay: ${OVERLAY_PATH}"
+                  echo "  Server Digest: ${SERVER_DIGEST}"
+                  echo "  UI Digest: ${UI_DIGEST}"
+
+            - name: Checkout DevOps repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  fetch-depth: 0
+
+            - name: Setup Kustomize
+              uses: imranismail/setup-kustomize@v2
+
+            - name: Update kustomization.yaml with new images
+              run: |
+                  cd ${{ steps.parse.outputs.overlay_path }}
+                  
+                  TAG="${{ steps.parse.outputs.tag }}"
+                  SERVER_DIGEST="${{ steps.parse.outputs.server_digest }}"
+                  UI_DIGEST="${{ steps.parse.outputs.ui_digest }}"
+                  
+                  echo "📝 Updating images in kustomization.yaml..."
+                  
+                  # Use digest if available (immutable), otherwise use tag
+                  if [ -n "${SERVER_DIGEST}" ] && [ "${SERVER_DIGEST}" != "null" ]; then
+                      SERVER_IMAGE="${{ env.ECR_REGISTRY }}/flowise-server@${SERVER_DIGEST}"
+                      echo "🔐 Server: Using digest ${SERVER_DIGEST:0:12}..."
+                  else
+                      SERVER_IMAGE="${{ env.ECR_REGISTRY }}/flowise-server:${TAG}"
+                      echo "🏷️ Server: Using tag ${TAG}"
+                  fi
+                  
+                  if [ -n "${UI_DIGEST}" ] && [ "${UI_DIGEST}" != "null" ]; then
+                      UI_IMAGE="${{ env.ECR_REGISTRY }}/flowise-ui@${UI_DIGEST}"
+                      echo "🔐 UI: Using digest ${UI_DIGEST:0:12}..."
+                  else
+                      UI_IMAGE="${{ env.ECR_REGISTRY }}/flowise-ui:${TAG}"
+                      echo "🏷️ UI: Using tag ${TAG}"
+                  fi
+                  
+                  echo ""
+                  echo "🖼️ Final image references:"
+                  echo "  Server: ${SERVER_IMAGE}"
+                  echo "  UI: ${UI_IMAGE}"
+                  
+                  # Update images in kustomization.yaml
+                  kustomize edit set image flowise-server=${SERVER_IMAGE}
+                  kustomize edit set image flowise-ui=${UI_IMAGE}
+                  
+                  echo ""
+                  echo "✅ Updated kustomization.yaml"
+                  echo "─────────────────────────────────────────"
+                  cat kustomization.yaml
+
+            - name: Commit and push changes
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  
+                  OVERLAY_PATH="${{ steps.parse.outputs.overlay_path }}"
+                  ENV="${{ steps.parse.outputs.env }}"
+                  TAG="${{ steps.parse.outputs.tag }}"
+                  SHA="${{ steps.parse.outputs.sha }}"
+                  ACTOR="${{ steps.parse.outputs.actor }}"
+                  
+                  git add ${OVERLAY_PATH}/kustomization.yaml
+                  
+                  if git diff --staged --quiet; then
+                      echo "⚠️ No changes detected, skipping commit"
+                      exit 0
+                  fi
+                  
+                  git commit -m "chore(${ENV}): update flowise images to ${TAG}" \
+                             -m "Triggered by: ${ACTOR}" \
+                             -m "Source SHA: ${SHA}" \
+                             -m "Tag: ${TAG}" \
+                             -m "ArgoCD will auto-sync to deploy new images to EKS cluster"
+                  
+                  git push origin main
+                  
+                  echo ""
+                  echo "✅ Changes committed and pushed to main branch"
+                  echo "🔄 ArgoCD will detect changes and auto-sync deployment"
+
+            - name: Deployment summary
+              if: always()
+              run: |
+                  echo ""
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "📊 DEPLOYMENT SUMMARY"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo ""
+                  echo "🌍 Environment:       ${{ steps.parse.outputs.env }}"
+                  echo "🏷️  Tag:              ${{ steps.parse.outputs.tag }}"
+                  echo "🔖 Source SHA:        ${{ steps.parse.outputs.sha }}"
+                  echo "📂 Overlay Path:      ${{ steps.parse.outputs.overlay_path }}"
+                  echo "👤 Triggered by:      ${{ steps.parse.outputs.actor }}"
+                  echo ""
+                  echo "📦 Images:"
+                  if [ -n "${{ steps.parse.outputs.server_digest }}" ]; then
+                      echo "  Server: ${{ env.ECR_REGISTRY }}/flowise-server@${{ steps.parse.outputs.server_digest }}"
+                  else
+                      echo "  Server: ${{ env.ECR_REGISTRY }}/flowise-server:${{ steps.parse.outputs.tag }}"
+                  fi
+                  if [ -n "${{ steps.parse.outputs.ui_digest }}" ]; then
+                      echo "  UI:     ${{ env.ECR_REGISTRY }}/flowise-ui@${{ steps.parse.outputs.ui_digest }}"
+                  else
+                      echo "  UI:     ${{ env.ECR_REGISTRY }}/flowise-ui:${{ steps.parse.outputs.tag }}"
+                  fi
+                  echo ""
+                  echo "🎯 Next Steps:"
+                  echo "  1. ArgoCD will detect the Git changes"
+                  echo "  2. Auto-sync will apply the new configuration"
+                  echo "  3. Pods will restart with new images"
+                  echo "  4. Check ArgoCD UI for deployment status"
+                  echo ""
+                  echo "🔗 ArgoCD App: flowise-${{ steps.parse.outputs.env }}"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
