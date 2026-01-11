@@ -19,9 +19,10 @@ resources:
 # kustomize edit set image flowise-server=...
 # kustomize edit set image flowise-ui=...
 images:
-- name: flowise-server
+- digest: sha256:5075aae264360e1e3203cdf84250c0cd59c276122ee207a889c4b351a4fbf9ac
+  name: flowise-server
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-server
-- digest: sha256:950b029cf30e94e100dbf63b0d3292d1502563dc4e3c5fc79f3ce9728cd0a611
+- digest: sha256:df54a65a5d7f10f32a7c083a8f152e520e81d54ed82d146011bd51357e44362f
   name: flowise-ui
   newName: 372836560690.dkr.ecr.ap-southeast-1.amazonaws.com/flowise-ui
 
