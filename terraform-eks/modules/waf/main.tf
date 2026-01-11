@@ -41,6 +41,27 @@ resource "aws_wafv2_web_acl" "main" {
             }
           }
         }
+
+        # Exclude CommonRuleSet for Flowise API paths
+        scope_down_statement {
+          not_statement {
+            statement {
+              byte_match_statement {
+                search_string         = "/api/v1/"
+                positional_constraint = "STARTS_WITH"
+
+                field_to_match {
+                  uri_path {}
+                }
+
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -64,6 +85,27 @@ resource "aws_wafv2_web_acl" "main" {
       managed_rule_group_statement {
         name        = "AWSManagedRulesKnownBadInputsRuleSet"
         vendor_name = "AWS"
+
+        # Exclude KnownBadInputs for Flowise API paths
+        scope_down_statement {
+          not_statement {
+            statement {
+              byte_match_statement {
+                search_string         = "/api/v1/"
+                positional_constraint = "STARTS_WITH"
+
+                field_to_match {
+                  uri_path {}
+                }
+
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -89,6 +131,27 @@ resource "aws_wafv2_web_acl" "main" {
         managed_rule_group_statement {
           name        = "AWSManagedRulesSQLiRuleSet"
           vendor_name = "AWS"
+
+          # Exclude SQLi rules for Flowise API paths
+          scope_down_statement {
+            not_statement {
+              statement {
+                byte_match_statement {
+                  search_string         = "/api/v1/"
+                  positional_constraint = "STARTS_WITH"
+
+                  field_to_match {
+                    uri_path {}
+                  }
+
+                  text_transformation {
+                    priority = 0
+                    type     = "LOWERCASE"
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
@@ -115,6 +178,27 @@ resource "aws_wafv2_web_acl" "main" {
         managed_rule_group_statement {
           name        = "AWSManagedRulesLinuxRuleSet"
           vendor_name = "AWS"
+
+          # Exclude LinuxRuleSet for Flowise API paths
+          scope_down_statement {
+            not_statement {
+              statement {
+                byte_match_statement {
+                  search_string         = "/api/v1/"
+                  positional_constraint = "STARTS_WITH"
+
+                  field_to_match {
+                    uri_path {}
+                  }
+
+                  text_transformation {
+                    priority = 0
+                    type     = "LOWERCASE"
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
@@ -141,6 +225,27 @@ resource "aws_wafv2_web_acl" "main" {
         rate_based_statement {
           limit              = var.rate_limit_requests
           aggregate_key_type = "IP"
+
+          # Exclude Flowise API from rate limiting
+          scope_down_statement {
+            not_statement {
+              statement {
+                byte_match_statement {
+                  search_string         = "/api/v1/"
+                  positional_constraint = "STARTS_WITH"
+
+                  field_to_match {
+                    uri_path {}
+                  }
+
+                  text_transformation {
+                    priority = 0
+                    type     = "LOWERCASE"
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
