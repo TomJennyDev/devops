@@ -98,27 +98,13 @@ jobs:
                   cd ${{ steps.parse.outputs.overlay_path }}
 
                   TAG="${{ steps.parse.outputs.tag }}"
-                  SERVER_DIGEST="${{ steps.parse.outputs.server_digest }}"
-                  UI_DIGEST="${{ steps.parse.outputs.ui_digest }}"
 
                   echo "📝 Updating images in kustomization.yaml..."
+                  echo "🏷️  Tag: ${TAG}"
 
-                  # Use digest if available (immutable), otherwise use tag
-                  if [ -n "${SERVER_DIGEST}" ] && [ "${SERVER_DIGEST}" != "null" ]; then
-                      SERVER_IMAGE="${{ env.ECR_REGISTRY }}/flowise-server@${SERVER_DIGEST}"
-                      echo "🔐 Server: Using digest ${SERVER_DIGEST:0:12}..."
-                  else
-                      SERVER_IMAGE="${{ env.ECR_REGISTRY }}/flowise-server:${TAG}"
-                      echo "🏷️ Server: Using tag ${TAG}"
-                  fi
-
-                  if [ -n "${UI_DIGEST}" ] && [ "${UI_DIGEST}" != "null" ]; then
-                      UI_IMAGE="${{ env.ECR_REGISTRY }}/flowise-ui@${UI_DIGEST}"
-                      echo "🔐 UI: Using digest ${UI_DIGEST:0:12}..."
-                  else
-                      UI_IMAGE="${{ env.ECR_REGISTRY }}/flowise-ui:${TAG}"
-                      echo "🏷️ UI: Using tag ${TAG}"
-                  fi
+                  # Use tag-based images
+                  SERVER_IMAGE="${{ env.ECR_REGISTRY }}/flowise-server:${TAG}"
+                  UI_IMAGE="${{ env.ECR_REGISTRY }}/flowise-ui:${TAG}"
 
                   echo ""
                   echo "🖼️ Final image references:"
@@ -179,16 +165,8 @@ jobs:
                   echo "👤 Triggered by:      ${{ steps.parse.outputs.actor }}"
                   echo ""
                   echo "📦 Images:"
-                  if [ -n "${{ steps.parse.outputs.server_digest }}" ]; then
-                      echo "  Server: ${{ env.ECR_REGISTRY }}/flowise-server@${{ steps.parse.outputs.server_digest }}"
-                  else
-                      echo "  Server: ${{ env.ECR_REGISTRY }}/flowise-server:${{ steps.parse.outputs.tag }}"
-                  fi
-                  if [ -n "${{ steps.parse.outputs.ui_digest }}" ]; then
-                      echo "  UI:     ${{ env.ECR_REGISTRY }}/flowise-ui@${{ steps.parse.outputs.ui_digest }}"
-                  else
-                      echo "  UI:     ${{ env.ECR_REGISTRY }}/flowise-ui:${{ steps.parse.outputs.tag }}"
-                  fi
+                  echo "  Server: ${{ env.ECR_REGISTRY }}/flowise-server:${{ steps.parse.outputs.tag }}"
+                  echo "  UI:     ${{ env.ECR_REGISTRY }}/flowise-ui:${{ steps.parse.outputs.tag }}"
                   echo ""
                   echo "🎯 Next Steps:"
                   echo "  1. ArgoCD will detect the Git changes"
